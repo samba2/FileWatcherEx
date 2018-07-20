@@ -47,7 +47,7 @@ namespace FileWatcher
                     spamCheckStartTime = now;
                 } else if (!spamWarningLogged && spamCheckStartTime + EVENT_SPAM_WARNING_THRESHOLD < now) {
                     spamWarningLogged = true;
-                    logger(string.Format("Warning: Watcher is busy catching up wit {0} file changes in 60 seconds. Latest path is '{1}'", events.Count, fileEvent.path));
+                    logger(string.Format("Warning: Watcher is busy catching up wit {0} file changes in 60 seconds. Latest path is '{1}'", events.Count, fileEvent.Path));
                 }
 
                 // Add into our queue
@@ -104,23 +104,23 @@ namespace FileWatcher
             {
 
                 // Existing event
-                if (mapPathToEvents.ContainsKey(e.path))
+                if (mapPathToEvents.ContainsKey(e.Path))
                 {
-                    var existingEvent = mapPathToEvents[e.path];
-                    var currentChangeType = existingEvent.changeType;
-                    var newChangeType = e.changeType;
+                    var existingEvent = mapPathToEvents[e.Path];
+                    var currentChangeType = existingEvent.ChangeType;
+                    var newChangeType = e.ChangeType;
 
                     // ignore CREATE followed by DELETE in one go
                     if (currentChangeType == (int)ChangeType.CREATED && newChangeType == (int)ChangeType.DELETED)
                     {
-                        mapPathToEvents.Remove(existingEvent.path);
+                        mapPathToEvents.Remove(existingEvent.Path);
                         eventsWithoutDuplicates.Remove(existingEvent);
                     }
 
                     // flatten DELETE followed by CREATE into CHANGE
                     else if (currentChangeType == (int)ChangeType.DELETED && newChangeType == (int)ChangeType.CREATED)
                     {
-                        existingEvent.changeType = (int)ChangeType.CHANGED;
+                        existingEvent.ChangeType = (int)ChangeType.CHANGED;
                     }
 
                     // Do nothing. Keep the created event
@@ -131,14 +131,14 @@ namespace FileWatcher
                     // Otherwise apply change type
                     else
                     {
-                        existingEvent.changeType = newChangeType;
+                        existingEvent.ChangeType = newChangeType;
                     }
                 }
 
                 // New event
                 else
                 {
-                    mapPathToEvents.Add(e.path, e);
+                    mapPathToEvents.Add(e.Path, e);
                     eventsWithoutDuplicates.Add(e);
                 }
             }
@@ -158,7 +158,7 @@ namespace FileWatcher
             return eventsWithoutDuplicates
                 .Where((e) =>
                 {
-                    if (e.changeType != (int)ChangeType.DELETED)
+                    if (e.ChangeType != (int)ChangeType.DELETED)
                     {
                         addedChangeEvents.Add(e);
                         return false; // remove ADD / CHANGE
@@ -166,16 +166,16 @@ namespace FileWatcher
 
                     return true;
                 })
-                .OrderBy((e) => e.path.Length) // shortest path first
+                .OrderBy((e) => e.Path.Length) // shortest path first
                 .Where((e) =>
                 {
-                    if (deletedPaths.Any(d => IsParent(e.path, d)))
+                    if (deletedPaths.Any(d => IsParent(e.Path, d)))
                     {
                         return false; // DELETE is ignored if parent is deleted already
                     }
 
                     // otherwise mark as deleted
-                    deletedPaths.Add(e.path);
+                    deletedPaths.Add(e.Path);
 
                     return true;
                 })

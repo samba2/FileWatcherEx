@@ -10,16 +10,17 @@ namespace VSCode.FileSystem
 {
     public class FileEvent
     {
-        public int changeType { get; set; }
-        public string path { get; set; }
+        public int ChangeType { get; set; }
+        public string Path { get; set; }
     }
 
-    public enum ChangeType : int
+    public enum ChangeType
     {
         CHANGED = 0,
         CREATED = 1,
         DELETED = 2,
-        LOG = 3
+        RENAMED = 3,
+        LOG = 4
     }
 
     public class FileWatcher : IDisposable
@@ -71,8 +72,8 @@ namespace VSCode.FileSystem
         {
             this._eventCallback(new FileEvent
             {
-                changeType = (int)changeType,
-                path = e.FullPath
+                ChangeType = (int)changeType,
+                Path = e.FullPath
             });
         }
 
@@ -80,24 +81,30 @@ namespace VSCode.FileSystem
         {
             var newInPath = e.FullPath.StartsWith(_watchPath);
             var oldInPath = e.OldFullPath.StartsWith(_watchPath);
+            
+            //if (newInPath)
+            //{
+            //    this._eventCallback(new FileEvent
+            //    {
+            //        changeType = (int)ChangeType.CREATED,
+            //        path = e.FullPath
+            //    });
+            //}
 
-            if (newInPath)
-            {
-                this._eventCallback(new FileEvent
-                {
-                    changeType = (int)ChangeType.CREATED,
-                    path = e.FullPath
-                });
-            }
+            //if (oldInPath)
+            //{
+            //    this._eventCallback(new FileEvent
+            //    {
+            //        changeType = (int)ChangeType.DELETED,
+            //        path = e.OldFullPath
+            //    });
+            //}
 
-            if (oldInPath)
+            this._eventCallback(new FileEvent
             {
-                this._eventCallback(new FileEvent
-                {
-                    changeType = (int)ChangeType.DELETED,
-                    path = e.OldFullPath
-                });
-            }
+                ChangeType = (int)ChangeType.RENAMED,
+                Path = e.OldFullPath
+            });
         }
 
         private void MakeWatcher(string path)
@@ -181,7 +188,7 @@ namespace VSCode.FileSystem
             }
             catch (Exception ex)
             {
-                throw ex;
+                Console.WriteLine("<<ERROR>>: " + ex.Message);
             }
         }
 

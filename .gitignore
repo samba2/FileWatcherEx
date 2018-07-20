@@ -10,6 +10,7 @@ debug/
 release/
 TestResults/
 packages/
+.vs/
 BuildResults.xml
 *.results.xml
 *.log

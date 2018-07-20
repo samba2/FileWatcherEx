@@ -38,14 +38,17 @@ namespace VSCode.FileSystem
 
             // Event processor deals with buffering and normalization of events
             var processor = new EventProcessor((e) => {
-                Console.WriteLine("{0}|{1}", e.changeType, e.path);
+                Console.WriteLine("{0}|{1}", Enum.GetName(typeof(ChangeType), e.ChangeType), e.Path);
 
                 if (verboseLogging)
                 {
-                    Console.WriteLine("{0}| >> normalized {1} {2}", (int)ChangeType.LOG, e.changeType == (int)ChangeType.CREATED ? "[ADDED]" : e.changeType == (int)ChangeType.DELETED ? "[DELETED]" : "[CHANGED]", e.path);
+                    Console.WriteLine("{0}| >> normalized {1} {2}", 
+                        (int)ChangeType.LOG, 
+                        e.ChangeType.ToString(),
+                        e.Path);
                 }
             }, (msg) => {
-                Console.WriteLine("{0}|{1}", (int)ChangeType.LOG, msg);
+                Console.WriteLine("{0}|{1}", Enum.GetName(typeof(ChangeType), ChangeType.LOG), msg);
             });
 
             // Use a thread to unblock producer
@@ -58,7 +61,7 @@ namespace VSCode.FileSystem
 
                     if (verboseLogging)
                     {
-                        Console.WriteLine("{0}|{1} {2}", (int)ChangeType.LOG, e.changeType == (int)ChangeType.CREATED ? "[ADDED]" : e.changeType == (int)ChangeType.DELETED ? "[DELETED]" : "[CHANGED]", e.path);
+                        Console.WriteLine("{0}|{1} {2}", (int)ChangeType.LOG, e.ChangeType == (int)ChangeType.CREATED ? "[ADDED]" : e.ChangeType == (int)ChangeType.DELETED ? "[DELETED]" : "[CHANGED]", e.Path);
                     }
                 }
             });
