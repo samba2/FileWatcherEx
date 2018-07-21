@@ -8,7 +8,7 @@
         RENAMED = 3,
         LOG = 4
     }
-
+    
 
     public class FileChangedEvent
     {

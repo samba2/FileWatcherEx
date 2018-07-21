@@ -3,41 +3,72 @@ using System.Collections.Concurrent;
 using System.IO;
 using System.Threading;
 
+
 namespace FileWatcherEx
 {
     public class FileWatcherEx : IDisposable
     {
 
         #region Private Properties
+
         private Thread _thread;
         private EventProcessor _processor;
         private BlockingCollection<FileChangedEvent> _fileEventQueue = new BlockingCollection<FileChangedEvent>();
         
         private FileWatcher _watcher;
         private FileSystemWatcher _fsw;
+
         #endregion
 
 
+
         #region Public Properties
+
         /// <summary>
         /// Folder path to watch
         /// </summary>
         public string FolderPath { get; set; } = "";
 
 
-        public delegate void dlgOnChanged(FileChangedEvent e);
-        public event dlgOnChanged OnChanged;
+        /// <summary>
+        /// Filter string used for determining what files are monitored in a directory
+        /// </summary>
+        public string Filter { get; set; } = "*.*";
 
-        public delegate void dlgOnDeleted(FileChangedEvent e);
-        public event dlgOnDeleted OnDeleted;
 
-        public delegate void dlgOnCreated(FileChangedEvent e);
-        public event dlgOnDeleted OnCreated;
+        /// <summary>
+        /// Gets, sets the type of changes to watch for
+        /// </summary>
+        public NotifyFilters NotifyFilter { get; set; } = NotifyFilters.LastWrite | NotifyFilters.FileName | NotifyFilters.DirectoryName;
 
-        public delegate void dlgOnRenamed(FileChangedEvent e);
-        public event dlgOnDeleted OnRenamed;
+
+        /// <summary>
+        /// Gets or sets a value indicating whether subdirectories within the specified path should be monitored.
+        /// </summary>
+        public bool IncludeSubdirectories { get; set; } = false;
+        
 
         #endregion
+
+
+
+        #region Public Events
+        public delegate void delegateOnChanged(FileChangedEvent e);
+        public event delegateOnChanged OnChanged;
+
+        public delegate void delegateOnDeleted(FileChangedEvent e);
+        public event delegateOnDeleted OnDeleted;
+
+        public delegate void delegateOnCreated(FileChangedEvent e);
+        public event delegateOnCreated OnCreated;
+
+        public delegate void delegateOnRenamed(FileChangedEvent e);
+        public event delegateOnRenamed OnRenamed;
+
+        public delegate void delegateOnError(ErrorEventArgs e);
+        public event delegateOnError OnError;
+        #endregion
+
 
 
         /// <summary>
@@ -47,7 +78,6 @@ namespace FileWatcherEx
         public FileWatcherEx(string folder = "")
         {
             this.FolderPath = folder;
-            
         }
 
 
@@ -56,18 +86,11 @@ namespace FileWatcherEx
         /// </summary>
         public void Start()
         {
-            if (!Directory.Exists(this.FolderPath))
-            {
-                return;
-            }
+            if (!Directory.Exists(this.FolderPath)) return;
 
 
             _processor = new EventProcessor((e) =>
             {
-                Console.WriteLine(string.Format("<<**>> {0} | {1}",
-                    Enum.GetName(typeof(ChangeType), e.ChangeType),
-                    e.FullPath));
-
                 switch (e.ChangeType)
                 {
                     case ChangeType.CHANGED:
@@ -84,9 +107,6 @@ namespace FileWatcherEx
 
                     case ChangeType.RENAMED:
                         this.OnRenamed?.Invoke(e);
-                        break;
-
-                    case ChangeType.LOG:
                         break;
 
                     default:
@@ -122,25 +142,29 @@ namespace FileWatcherEx
                 _fileEventQueue.Add(e);
             }
 
+
+            // OnError
             void onError(ErrorEventArgs e)
             {
                 if (e != null)
                 {
-                    Console.WriteLine("{0}|{1}", (int)ChangeType.LOG, e.GetException().ToString());
+                    this.OnError?.Invoke(e);
                 }
             }
 
 
-            // Start watching
+            // Start watcher
             this._watcher = new FileWatcher();
+
             this._fsw = this._watcher.Create(this.FolderPath, onEvent, onError);
+            this._fsw.Filter = this.Filter;
+            this._fsw.NotifyFilter = this.NotifyFilter;
+            this._fsw.IncludeSubdirectories = this.IncludeSubdirectories;
+
+            // Start watching
             this._fsw.EnableRaisingEvents = true;
         }
-
-        private void FileWatcherEx_OnChanged(FileChangedEvent e)
-        {
-            throw new NotImplementedException();
-        }
+        
 
 
         /// <summary>
@@ -151,6 +175,16 @@ namespace FileWatcherEx
             if (this._fsw != null)
             {
                 this._fsw.EnableRaisingEvents = false;
+            }
+
+            if (this._watcher != null)
+            {
+                this._watcher.Dispose();
+            }
+
+            if (this._thread != null)
+            {
+                this._thread.Abort();
             }
         }
 
@@ -164,16 +198,8 @@ namespace FileWatcherEx
             {
                 this._fsw.Dispose();
             }
-
-            if (this._watcher != null)
-            {
-                this._watcher.Dispose();
-            }
-
-            if (this._thread != null)
-            {
-                this._thread.Abort();
-            }
         }
+
+
     }
 }

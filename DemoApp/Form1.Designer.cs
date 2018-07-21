@@ -48,9 +48,9 @@
             this.txtConsole.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
             this.txtConsole.Multiline = true;
             this.txtConsole.Name = "txtConsole";
+            this.txtConsole.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
             this.txtConsole.Size = new System.Drawing.Size(924, 486);
             this.txtConsole.TabIndex = 0;
-            this.txtConsole.Text = "ss";
             // 
             // btnSelectFolder
             // 
@@ -61,6 +61,7 @@
             this.btnSelectFolder.TabIndex = 1;
             this.btnSelectFolder.Text = "Select folder";
             this.btnSelectFolder.UseVisualStyleBackColor = true;
+            this.btnSelectFolder.Click += new System.EventHandler(this.btnSelectFolder_Click);
             // 
             // txtPath
             // 

@@ -1,14 +1,4 @@
 ﻿using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Drawing;
-using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 using FileWatcherEx;
 
@@ -31,7 +21,10 @@ namespace DemoApp
 
         private void btnStart_Click(object sender, EventArgs e)
         {
-            this._fw = new FileWatcherEx.FileWatcherEx(txtPath.Text.Trim());
+            this._fw = new FileWatcherEx.FileWatcherEx(txtPath.Text.Trim())
+            {
+
+            };
 
             this._fw.OnRenamed += _fw_OnRenamed;
             this._fw.OnCreated += _fw_OnCreated;
@@ -64,8 +57,8 @@ namespace DemoApp
 
         private void _fw_OnRenamed(FileChangedEvent e)
         {
-            MessageBox.Show(string.Format("[ren] {0} | {1} ----> {2}", 
-                Enum.GetName(typeof(ChangeType), e.ChangeType), 
+            MessageBox.Show(string.Format("[ren] {0} | {1} ----> {2}",
+                Enum.GetName(typeof(ChangeType), e.ChangeType),
                 e.OldFullPath,
                 e.FullPath));
         }
@@ -79,11 +72,15 @@ namespace DemoApp
         }
 
 
+        private void btnSelectFolder_Click(object sender, EventArgs e)
+        {
+            FolderBrowserDialog f = new FolderBrowserDialog();
 
 
-
-
-
-       
+            if(f.ShowDialog() == DialogResult.OK)
+            {
+                txtPath.Text = f.SelectedPath;
+            }
+        }
     }
 }
