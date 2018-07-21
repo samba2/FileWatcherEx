@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 
 namespace FileWatcherEx
 {
-    public class EventProcessor
+    class EventProcessor
     {
 
         /// <summary>
@@ -27,8 +27,8 @@ namespace FileWatcherEx
         private System.Object LOCK = new System.Object();
         private Task delayTask = null;
 
-        private List<FileEvent> events = new List<FileEvent>();
-        private Action<FileEvent> handleEvent;
+        private List<FileChangedEvent> events = new List<FileChangedEvent>();
+        private Action<FileChangedEvent> handleEvent;
 
         private Action<string> logger;
 
@@ -41,26 +41,26 @@ namespace FileWatcherEx
 
 
 
-        private IEnumerable<FileEvent> NormalizeEvents(FileEvent[] events)
+        private IEnumerable<FileChangedEvent> NormalizeEvents(FileChangedEvent[] events)
         {
-            var mapPathToEvents = new Dictionary<string, FileEvent>();
-            var eventsWithoutDuplicates = new List<FileEvent>();
+            var mapPathToEvents = new Dictionary<string, FileChangedEvent>();
+            var eventsWithoutDuplicates = new List<FileChangedEvent>();
 
             // Normalize Duplicates
             foreach (var e in events)
             {
 
                 // Existing event
-                if (mapPathToEvents.ContainsKey(e.Path))
+                if (mapPathToEvents.ContainsKey(e.FullPath))
                 {
-                    var existingEvent = mapPathToEvents[e.Path];
+                    var existingEvent = mapPathToEvents[e.FullPath];
                     var currentChangeType = existingEvent.ChangeType;
                     var newChangeType = e.ChangeType;
 
                     // ignore CREATE followed by DELETE in one go
                     if (currentChangeType == ChangeType.CREATED && newChangeType == ChangeType.DELETED)
                     {
-                        mapPathToEvents.Remove(existingEvent.Path);
+                        mapPathToEvents.Remove(existingEvent.FullPath);
                         eventsWithoutDuplicates.Remove(existingEvent);
                     }
 
@@ -85,13 +85,13 @@ namespace FileWatcherEx
                 // New event
                 else
                 {
-                    mapPathToEvents.Add(e.Path, e);
+                    mapPathToEvents.Add(e.FullPath, e);
                     eventsWithoutDuplicates.Add(e);
                 }
             }
 
             // Handle deletes
-            var addedChangeEvents = new List<FileEvent>();
+            var addedChangeEvents = new List<FileChangedEvent>();
             var deletedPaths = new List<string>();
 
             // This algorithm will remove all DELETE events up to the root folder
@@ -113,16 +113,16 @@ namespace FileWatcherEx
 
                     return true;
                 })
-                .OrderBy((e) => e.Path.Length) // shortest path first
+                .OrderBy((e) => e.FullPath.Length) // shortest path first
                 .Where((e) =>
                 {
-                    if (deletedPaths.Any(d => IsParent(e.Path, d)))
+                    if (deletedPaths.Any(d => IsParent(e.FullPath, d)))
                     {
                         return false; // DELETE is ignored if parent is deleted already
                     }
 
                     // otherwise mark as deleted
-                    deletedPaths.Add(e.Path);
+                    deletedPaths.Add(e.FullPath);
 
                     return true;
                 })
@@ -138,14 +138,14 @@ namespace FileWatcherEx
 
 
 
-        public EventProcessor(Action<FileEvent> onEvent, Action<string> onLogging)
+        public EventProcessor(Action<FileChangedEvent> onEvent, Action<string> onLogging)
         {
             handleEvent = onEvent;
             logger = onLogging;
         }
 
 
-        public void ProcessEvent(FileEvent fileEvent)
+        public void ProcessEvent(FileChangedEvent fileEvent)
         {
             lock (LOCK)
             {
@@ -157,7 +157,7 @@ namespace FileWatcherEx
                     spamCheckStartTime = now;
                 } else if (!spamWarningLogged && spamCheckStartTime + EVENT_SPAM_WARNING_THRESHOLD < now) {
                     spamWarningLogged = true;
-                    logger(string.Format("Warning: Watcher is busy catching up wit {0} file changes in 60 seconds. Latest path is '{1}'", events.Count, fileEvent.Path));
+                    logger(string.Format("Warning: Watcher is busy catching up wit {0} file changes in 60 seconds. Latest path is '{1}'", events.Count, fileEvent.FullPath));
                 }
 
                 // Add into our queue

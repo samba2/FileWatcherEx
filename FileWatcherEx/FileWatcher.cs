@@ -8,32 +8,23 @@ using System.IO;
 
 namespace FileWatcherEx
 {
-    public enum ChangeType
-    {
-        CHANGED = 0,
-        CREATED = 1,
-        DELETED = 2,
-        RENAMED = 3,
-        LOG = 4
-    }
 
-
-    public class FileEvent
-    {
-        public ChangeType ChangeType { get; set; }
-        public string Path { get; set; }
-    }
-
-    
-
-    public class FileWatcher : IDisposable
+    class FileWatcher : IDisposable
     {
         private string _watchPath;
-        private Action<FileEvent> _eventCallback = null;
+        private Action<FileChangedEvent> _eventCallback = null;
         private Dictionary<string, FileSystemWatcher> _fileSystemWatcherDictionary = new Dictionary<string, FileSystemWatcher>();
         private Action<ErrorEventArgs> _onError = null;
 
-        public FileSystemWatcher Create(string path, Action<FileEvent> onEvent, Action<ErrorEventArgs> onError)
+
+        /// <summary>
+        /// Create new instance of FileSystemWatcher
+        /// </summary>
+        /// <param name="path">Full folder path to watcher</param>
+        /// <param name="onEvent">onEvent callback</param>
+        /// <param name="onError">onError callback</param>
+        /// <returns></returns>
+        public FileSystemWatcher Create(string path, Action<FileChangedEvent> onEvent, Action<ErrorEventArgs> onError)
         {
             this._watchPath = path;
             this._eventCallback = onEvent;
@@ -48,14 +39,28 @@ namespace FileWatcherEx
             watcher.Created += new FileSystemEventHandler(makeWatcher_Created);
             watcher.Deleted += new FileSystemEventHandler(makeWatcher_Deleted);
 
-            watcher.Changed += new FileSystemEventHandler((object source, FileSystemEventArgs e) => { ProcessEvent(e, ChangeType.CHANGED); });
-            watcher.Created += new FileSystemEventHandler((object source, FileSystemEventArgs e) => { ProcessEvent(e, ChangeType.CREATED); });
-            watcher.Deleted += new FileSystemEventHandler((object source, FileSystemEventArgs e) => { ProcessEvent(e, ChangeType.DELETED); });
-            watcher.Renamed += new RenamedEventHandler((object source, RenamedEventArgs e) => { ProcessEvent(e); });
-            watcher.Error += new ErrorEventHandler((object source, ErrorEventArgs e) => { onError(e); });
+            watcher.Changed += new FileSystemEventHandler((object source, FileSystemEventArgs e) => {
+                ProcessEvent(e, ChangeType.CHANGED);
+            });
 
-            watcher.InternalBufferSize = 32768; // changing this to a higher value can lead into issues when watching UNC drives
+            watcher.Created += new FileSystemEventHandler((object source, FileSystemEventArgs e) => {
+                ProcessEvent(e, ChangeType.CREATED);
+            });
 
+            watcher.Deleted += new FileSystemEventHandler((object source, FileSystemEventArgs e) => {
+                ProcessEvent(e, ChangeType.DELETED);
+            });
+
+            watcher.Renamed += new RenamedEventHandler((object source, RenamedEventArgs e) => {
+                ProcessEvent(e); }
+            );
+
+            watcher.Error += new ErrorEventHandler((object source, ErrorEventArgs e) => {
+                onError(e);
+            });
+
+            //changing this to a higher value can lead into issues when watching UNC drives
+            watcher.InternalBufferSize = 32768;
             this._fileSystemWatcherDictionary.Add(path, watcher);
 
             foreach (DirectoryInfo directoryInfo in new DirectoryInfo(path).GetDirectories())
@@ -71,44 +76,37 @@ namespace FileWatcherEx
             return watcher;
         }
 
+
+        /// <summary>
+        /// Process event for type = [CHANGED; DELETED; CREATED]
+        /// </summary>
+        /// <param name="e"></param>
+        /// <param name="changeType"></param>
         private void ProcessEvent(FileSystemEventArgs e, ChangeType changeType)
         {
-            this._eventCallback(new FileEvent
+            this._eventCallback(new FileChangedEvent
             {
                 ChangeType = changeType,
-                Path = e.FullPath
+                FullPath = e.FullPath
             });
         }
 
+
+        /// <summary>
+        /// Process event for type = RENAMED
+        /// </summary>
+        /// <param name="e"></param>
         private void ProcessEvent(RenamedEventArgs e)
         {
-            var newInPath = e.FullPath.StartsWith(_watchPath);
-            var oldInPath = e.OldFullPath.StartsWith(_watchPath);
-            
-            //if (newInPath)
-            //{
-            //    this._eventCallback(new FileEvent
-            //    {
-            //        changeType = (int)ChangeType.CREATED,
-            //        path = e.FullPath
-            //    });
-            //}
-
-            //if (oldInPath)
-            //{
-            //    this._eventCallback(new FileEvent
-            //    {
-            //        changeType = (int)ChangeType.DELETED,
-            //        path = e.OldFullPath
-            //    });
-            //}
-
-            this._eventCallback(new FileEvent
+            this._eventCallback(new FileChangedEvent
             {
                 ChangeType = ChangeType.RENAMED,
-                Path = e.OldFullPath
+                FullPath = e.FullPath,
+                OldFullPath = e.OldFullPath,
             });
         }
+
+
 
         private void MakeWatcher(string path)
         {
@@ -164,6 +162,7 @@ namespace FileWatcherEx
             }
         }
 
+
         private void makeWatcher_Created(object sender, FileSystemEventArgs e)
         {
             try
@@ -195,6 +194,7 @@ namespace FileWatcherEx
             }
         }
 
+
         private void makeWatcher_Deleted(object sender, FileSystemEventArgs e)
         {
             // If object removed, then I will dispose and remove them from dictionary
@@ -205,6 +205,10 @@ namespace FileWatcherEx
             }
         }
 
+
+        /// <summary>
+        /// Dispose the instance
+        /// </summary>
         public void Dispose()
         {
             foreach (var item in this._fileSystemWatcherDictionary)

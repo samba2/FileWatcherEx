@@ -42,6 +42,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="EventProcessor.cs" />
+    <Compile Include="FileEvent.cs" />
     <Compile Include="FileWatcher.cs" />
     <Compile Include="FileWatcherEx.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

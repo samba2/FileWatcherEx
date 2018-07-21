@@ -5,20 +5,39 @@ using System.Threading;
 
 namespace FileWatcherEx
 {
-    public class FileWatcherEx
+    public class FileWatcherEx : IDisposable
     {
+
+        #region Private Properties
         private Thread _thread;
         private EventProcessor _processor;
-        private BlockingCollection<FileEvent> _fileEventQueue = new BlockingCollection<FileEvent>();
+        private BlockingCollection<FileChangedEvent> _fileEventQueue = new BlockingCollection<FileChangedEvent>();
         
         private FileWatcher _watcher;
         private FileSystemWatcher _fsw;
+        #endregion
 
 
+        #region Public Properties
         /// <summary>
         /// Folder path to watch
         /// </summary>
         public string FolderPath { get; set; } = "";
+
+
+        public delegate void dlgOnChanged(FileChangedEvent e);
+        public event dlgOnChanged OnChanged;
+
+        public delegate void dlgOnDeleted(FileChangedEvent e);
+        public event dlgOnDeleted OnDeleted;
+
+        public delegate void dlgOnCreated(FileChangedEvent e);
+        public event dlgOnDeleted OnCreated;
+
+        public delegate void dlgOnRenamed(FileChangedEvent e);
+        public event dlgOnDeleted OnRenamed;
+
+        #endregion
 
 
         /// <summary>
@@ -28,6 +47,7 @@ namespace FileWatcherEx
         public FileWatcherEx(string folder = "")
         {
             this.FolderPath = folder;
+            
         }
 
 
@@ -44,8 +64,36 @@ namespace FileWatcherEx
 
             _processor = new EventProcessor((e) =>
             {
-                Console.WriteLine(string.Format("{0} | {1}", Enum.GetName(typeof(ChangeType), e.ChangeType), e.Path));
-                
+                Console.WriteLine(string.Format("<<**>> {0} | {1}",
+                    Enum.GetName(typeof(ChangeType), e.ChangeType),
+                    e.FullPath));
+
+                switch (e.ChangeType)
+                {
+                    case ChangeType.CHANGED:
+                        this.OnChanged?.Invoke(e);
+                        break;
+
+                    case ChangeType.CREATED:
+                        this.OnCreated?.Invoke(e);
+                        break;
+
+                    case ChangeType.DELETED:
+                        this.OnDeleted?.Invoke(e);
+                        break;
+
+                    case ChangeType.RENAMED:
+                        this.OnRenamed?.Invoke(e);
+                        break;
+
+                    case ChangeType.LOG:
+                        break;
+
+                    default:
+                        break;
+                }
+
+
             }, (log) =>
             {
                 Console.WriteLine(string.Format("{0} | {1}", Enum.GetName(typeof(ChangeType), ChangeType.LOG), log));
@@ -69,7 +117,7 @@ namespace FileWatcherEx
 
 
             // Log each event in our special format to output queue
-            void onEvent(FileEvent e)
+            void onEvent(FileChangedEvent e)
             {
                 _fileEventQueue.Add(e);
             }
@@ -89,15 +137,31 @@ namespace FileWatcherEx
             this._fsw.EnableRaisingEvents = true;
         }
 
+        private void FileWatcherEx_OnChanged(FileChangedEvent e)
+        {
+            throw new NotImplementedException();
+        }
+
 
         /// <summary>
-        /// Stop watching files
+        /// Stop watching
         /// </summary>
         public void Stop()
         {
             if (this._fsw != null)
             {
                 this._fsw.EnableRaisingEvents = false;
+            }
+        }
+
+
+        /// <summary>
+        /// Dispose the FileWatcherEx instance
+        /// </summary>
+        public void Dispose()
+        {
+            if (this._fsw != null)
+            {
                 this._fsw.Dispose();
             }
 
