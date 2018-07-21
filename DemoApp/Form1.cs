@@ -30,38 +30,82 @@ namespace DemoApp
             this._fw.OnCreated += _fw_OnCreated;
             this._fw.OnDeleted += _fw_OnDeleted;
             this._fw.OnChanged += _fw_OnChanged;
+            this._fw.OnError += _fw_OnError;
 
             this._fw.Start();
         }
 
-        private void _fw_OnChanged(FileChangedEvent e)
+        private void _fw_OnError(object sender, System.IO.ErrorEventArgs e)
         {
-            MessageBox.Show(string.Format("[cha] {0} | {1}",
-                Enum.GetName(typeof(ChangeType), e.ChangeType),
-                e.FullPath));
+            if (txtConsole.InvokeRequired)
+            {
+                txtConsole.Invoke(new Action<Object, System.IO.ErrorEventArgs>(_fw_OnError), sender, e);
+            }
+            else
+            {
+                txtConsole.Text += "[ERROR]: " + e.GetException().Message + "\r\n";
+            }
         }
 
-        private void _fw_OnDeleted(FileChangedEvent e)
+        private void _fw_OnChanged(Object sender, FileChangedEvent e)
         {
-            MessageBox.Show(string.Format("[del] {0} | {1}",
+            if (txtConsole.InvokeRequired)
+            {
+                txtConsole.Invoke(new Action<Object, FileChangedEvent>(_fw_OnChanged), sender, e);
+            }
+            else
+            {
+                txtConsole.Text += string.Format("[cha] {0} | {1}",
                 Enum.GetName(typeof(ChangeType), e.ChangeType),
-                e.FullPath));
+                e.FullPath) + "\r\n";
+            }
         }
 
-        private void _fw_OnCreated(FileChangedEvent e)
+        private void _fw_OnDeleted(Object sender, FileChangedEvent e)
         {
-            MessageBox.Show(string.Format("[cre] {0} | {1}",
+            if (txtConsole.InvokeRequired)
+            {
+                txtConsole.Invoke(new Action<Object, FileChangedEvent>(_fw_OnDeleted), sender, e);
+            }
+            else
+            {
+                txtConsole.Text += string.Format("[del] {0} | {1}",
                 Enum.GetName(typeof(ChangeType), e.ChangeType),
-                e.FullPath));
+                e.FullPath) + "\r\n";
+            }
         }
 
-        private void _fw_OnRenamed(FileChangedEvent e)
+        private void _fw_OnCreated(Object sender, FileChangedEvent e)
         {
-            MessageBox.Show(string.Format("[ren] {0} | {1} ----> {2}",
+            if (txtConsole.InvokeRequired)
+            {
+                txtConsole.Invoke(new Action<Object, FileChangedEvent>(_fw_OnCreated), sender, e);
+            }
+            else
+            {
+                txtConsole.Text += string.Format("[cre] {0} | {1}",
+                Enum.GetName(typeof(ChangeType), e.ChangeType),
+                e.FullPath) + "\r\n";
+            }
+        }
+
+        private void _fw_OnRenamed(Object sender, FileChangedEvent e)
+        {
+            if (txtConsole.InvokeRequired)
+            {
+                txtConsole.Invoke(new Action<Object, FileChangedEvent>(_fw_OnRenamed), sender, e);
+            }
+            else
+            {
+                txtConsole.Text += string.Format("[ren] {0} | {1} ----> {2}",
                 Enum.GetName(typeof(ChangeType), e.ChangeType),
                 e.OldFullPath,
-                e.FullPath));
+                e.FullPath) + "\r\n";
+            }
         }
+
+
+        
 
 
 

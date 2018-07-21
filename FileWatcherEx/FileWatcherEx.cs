@@ -53,19 +53,19 @@ namespace FileWatcherEx
 
 
         #region Public Events
-        public delegate void delegateOnChanged(FileChangedEvent e);
+        public delegate void delegateOnChanged(Object sender, FileChangedEvent e);
         public event delegateOnChanged OnChanged;
 
-        public delegate void delegateOnDeleted(FileChangedEvent e);
+        public delegate void delegateOnDeleted(Object sender, FileChangedEvent e);
         public event delegateOnDeleted OnDeleted;
 
-        public delegate void delegateOnCreated(FileChangedEvent e);
+        public delegate void delegateOnCreated(Object sender, FileChangedEvent e);
         public event delegateOnCreated OnCreated;
 
-        public delegate void delegateOnRenamed(FileChangedEvent e);
+        public delegate void delegateOnRenamed(Object sender, FileChangedEvent e);
         public event delegateOnRenamed OnRenamed;
 
-        public delegate void delegateOnError(ErrorEventArgs e);
+        public delegate void delegateOnError(Object sender, ErrorEventArgs e);
         public event delegateOnError OnError;
         #endregion
 
@@ -94,19 +94,19 @@ namespace FileWatcherEx
                 switch (e.ChangeType)
                 {
                     case ChangeType.CHANGED:
-                        this.OnChanged?.Invoke(e);
+                        this.OnChanged?.Invoke(this, e);
                         break;
 
                     case ChangeType.CREATED:
-                        this.OnCreated?.Invoke(e);
+                        this.OnCreated?.Invoke(this, e);
                         break;
 
                     case ChangeType.DELETED:
-                        this.OnDeleted?.Invoke(e);
+                        this.OnDeleted?.Invoke(this, e);
                         break;
 
                     case ChangeType.RENAMED:
-                        this.OnRenamed?.Invoke(e);
+                        this.OnRenamed?.Invoke(this, e);
                         break;
 
                     default:
@@ -148,7 +148,7 @@ namespace FileWatcherEx
             {
                 if (e != null)
                 {
-                    this.OnError?.Invoke(e);
+                    this.OnError?.Invoke(this, e);
                 }
             }
 
