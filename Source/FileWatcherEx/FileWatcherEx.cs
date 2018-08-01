@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Concurrent;
+using System.ComponentModel;
 using System.IO;
 using System.Threading;
 
@@ -14,9 +15,9 @@ namespace FileWatcherEx
         private Thread _thread;
         private EventProcessor _processor;
         private BlockingCollection<FileChangedEvent> _fileEventQueue = new BlockingCollection<FileChangedEvent>();
-        
-        private FileWatcher _watcher;
-        private FileSystemWatcher _fsw;
+
+        private FileWatcher _watcher = new FileWatcher();
+        private FileSystemWatcher _fsw = new FileSystemWatcher();
 
         #endregion
 
@@ -46,7 +47,12 @@ namespace FileWatcherEx
         /// Gets or sets a value indicating whether subdirectories within the specified path should be monitored.
         /// </summary>
         public bool IncludeSubdirectories { get; set; } = false;
-        
+
+
+        /// <summary>
+        /// Gets or sets the object used to marshal the event handler calls issued as a result of a directory change.
+        /// </summary>
+        public ISynchronizeInvoke SynchronizingObject { get; set; } = null;
 
         #endregion
 
@@ -160,6 +166,7 @@ namespace FileWatcherEx
             this._fsw.Filter = this.Filter;
             this._fsw.NotifyFilter = this.NotifyFilter;
             this._fsw.IncludeSubdirectories = this.IncludeSubdirectories;
+            this._fsw.SynchronizingObject = this.SynchronizingObject;
 
             // Start watching
             this._fsw.EnableRaisingEvents = true;

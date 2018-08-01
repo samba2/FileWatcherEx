@@ -121,10 +121,19 @@ namespace DemoApp
             FolderBrowserDialog f = new FolderBrowserDialog();
 
 
-            if(f.ShowDialog() == DialogResult.OK)
+            if (f.ShowDialog() == DialogResult.OK)
             {
                 txtPath.Text = f.SelectedPath;
+
+                this._fw.Stop();
+                this._fw.Dispose();
             }
+        }
+
+        private void Form1_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            this._fw.Stop();
+            this._fw.Dispose();
         }
     }
 }
