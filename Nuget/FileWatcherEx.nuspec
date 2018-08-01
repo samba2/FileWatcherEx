@@ -7,23 +7,23 @@
     <authors>Duong Dieu Phap</authors>
     <owners>Duong Dieu Phap</owners>
     <description>
-      A wrapper of C# FileSystemWatcher for Windows. This project is based on the VSCode FileWatcher: https://github.com/Microsoft/vscode-filewatcher-windows
+      A wrapper of C# FileSystemWatcher for Windows, used in ImageGlass project. This project is based on the VSCode FileWatcher: https://github.com/Microsoft/vscode-filewatcher-windows.
     </description>
     <releaseNotes>
     </releaseNotes>
     <summary>
-      Features: Standardize the events of C# FileSystemWatcher. No false change notifications when a file system item is created, deleted, changed or renamed.
+      Features: Standardize the events of C# FileSystemWatcher. No false change notifications when a file system item is created, deleted, changed or renamed. 
     </summary>
     <language>en-US</language>
     <projectUrl>https://github.com/d2phap/FileWatcherEx</projectUrl>
-    <iconUrl>https://nuget.org/Content/Images/packageDefaultIcon-50x50.png</iconUrl>
+    <iconUrl>https://www.nuget.org/Content/gallery/img/default-package-icon.svg</iconUrl>
     <requireLicenseAcceptance>true</requireLicenseAcceptance>
     <licenseUrl>https://github.com/d2phap/FileWatcherEx/blob/master/LICENSE</licenseUrl>
     <copyright>&#x00A9; Duong Dieu Phap. All rights reserved.</copyright>
     <dependencies>
     </dependencies>
     <references></references>
-    <tags>filewatcher filesystemwatcher io filesystemevent monitor</tags>
+    <tags>filewatcher filesystemwatcher io filesystemevent monitor file-watcher file-monitoring realtime file-systems file-system-events monitor-file-system fs fsevents</tags>
   </metadata>
   <files>
     <file src="..\Source\FileWatcherEx\bin\Release\FileWatcherEx.dll" target="lib\net45\" />
