@@ -1,3 +1,3 @@
-nuget.exe pack "FileWatcherEx.nuspec" -NoPackageAnalysis -verbosity detailed -o Build -Version 1.1.0.0
+nuget.exe pack "FileWatcherEx.nuspec" -NoPackageAnalysis -verbosity detailed -o Build -Version 1.2.0.0
 
 pause
