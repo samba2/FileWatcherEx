@@ -94,25 +94,87 @@ namespace FileWatcherEx
         {
             if (!Directory.Exists(this.FolderPath)) return;
 
+           
+
 
             _processor = new EventProcessor((e) =>
             {
                 switch (e.ChangeType)
                 {
                     case ChangeType.CHANGED:
-                        this.OnChanged?.Invoke(this, e);
+
+                        InvokeChangedEvent(this.SynchronizingObject, e);
+
+                        void InvokeChangedEvent(object sender, FileChangedEvent fileEvent)
+                        {
+                            if (this.SynchronizingObject != null && this.SynchronizingObject.InvokeRequired)
+                            {
+                                this.SynchronizingObject.Invoke(new Action<object, FileChangedEvent>(InvokeChangedEvent), new object[] { this.SynchronizingObject, e });
+                            }
+                            else
+                            {
+                                this.OnChanged?.Invoke(this.SynchronizingObject, e);
+                            }
+                        }
+
+                        
                         break;
 
                     case ChangeType.CREATED:
-                        this.OnCreated?.Invoke(this, e);
+
+                        InvokeCreatedEvent(this.SynchronizingObject, e);
+
+                        void InvokeCreatedEvent(object sender, FileChangedEvent fileEvent)
+                        {
+                            if (this.SynchronizingObject != null && this.SynchronizingObject.InvokeRequired)
+                            {
+                                this.SynchronizingObject.Invoke(new Action<object, FileChangedEvent>(InvokeCreatedEvent), new object[] { this.SynchronizingObject, e });
+                            }
+                            else
+                            {
+                                this.OnCreated?.Invoke(this.SynchronizingObject, e);
+                            }
+                        }
+
+                        
                         break;
 
                     case ChangeType.DELETED:
-                        this.OnDeleted?.Invoke(this, e);
+                        
+                        InvokeDeletedEvent(this.SynchronizingObject, e);
+
+                        void InvokeDeletedEvent(object sender, FileChangedEvent fileEvent)
+                        {
+                            if (this.SynchronizingObject != null && this.SynchronizingObject.InvokeRequired)
+                            {
+                                this.SynchronizingObject.Invoke(new Action<object, FileChangedEvent>(InvokeDeletedEvent), new object[] { this.SynchronizingObject, e });
+                            }
+                            else
+                            {
+                                this.OnDeleted?.Invoke(this.SynchronizingObject, e);
+                            }
+                        }
+
+
                         break;
 
                     case ChangeType.RENAMED:
-                        this.OnRenamed?.Invoke(this, e);
+
+                        InvokeRenamedEvent(this.SynchronizingObject, e);
+
+                        void InvokeRenamedEvent(object sender, FileChangedEvent fileEvent)
+                        {
+                            if (this.SynchronizingObject != null && this.SynchronizingObject.InvokeRequired)
+                            {
+                                this.SynchronizingObject.Invoke(new Action<object, FileChangedEvent>(InvokeRenamedEvent), new object[] { this.SynchronizingObject, e });
+                            }
+                            else
+                            {
+                                this.OnRenamed?.Invoke(this.SynchronizingObject, e);
+                            }
+                        }
+
+
                         break;
 
                     default:

@@ -32,6 +32,8 @@ namespace DemoApp
             this._fw.OnChanged += _fw_OnChanged;
             this._fw.OnError += _fw_OnError;
 
+            this._fw.SynchronizingObject = this;
+
             this._fw.Start();
         }
 
@@ -49,59 +51,59 @@ namespace DemoApp
 
         private void _fw_OnChanged(Object sender, FileChangedEvent e)
         {
-            if (txtConsole.InvokeRequired)
-            {
-                txtConsole.Invoke(new Action<Object, FileChangedEvent>(_fw_OnChanged), sender, e);
-            }
-            else
-            {
+            //if (txtConsole.InvokeRequired)
+            //{
+            //    txtConsole.Invoke(new Action<Object, FileChangedEvent>(_fw_OnChanged), sender, e);
+            //}
+            //else
+            //{
                 txtConsole.Text += string.Format("[cha] {0} | {1}",
                 Enum.GetName(typeof(ChangeType), e.ChangeType),
                 e.FullPath) + "\r\n";
-            }
+            //}
         }
 
         private void _fw_OnDeleted(Object sender, FileChangedEvent e)
         {
-            if (txtConsole.InvokeRequired)
-            {
-                txtConsole.Invoke(new Action<Object, FileChangedEvent>(_fw_OnDeleted), sender, e);
-            }
-            else
-            {
+            //if (txtConsole.InvokeRequired)
+            //{
+            //    txtConsole.Invoke(new Action<Object, FileChangedEvent>(_fw_OnDeleted), sender, e);
+            //}
+            //else
+            //{
                 txtConsole.Text += string.Format("[del] {0} | {1}",
                 Enum.GetName(typeof(ChangeType), e.ChangeType),
                 e.FullPath) + "\r\n";
-            }
+            //}
         }
 
         private void _fw_OnCreated(Object sender, FileChangedEvent e)
         {
-            if (txtConsole.InvokeRequired)
-            {
-                txtConsole.Invoke(new Action<Object, FileChangedEvent>(_fw_OnCreated), sender, e);
-            }
-            else
-            {
+            //if (txtConsole.InvokeRequired)
+            //{
+            //    txtConsole.Invoke(new Action<Object, FileChangedEvent>(_fw_OnCreated), sender, e);
+            //}
+            //else
+            //{
                 txtConsole.Text += string.Format("[cre] {0} | {1}",
                 Enum.GetName(typeof(ChangeType), e.ChangeType),
                 e.FullPath) + "\r\n";
-            }
+            //}
         }
 
         private void _fw_OnRenamed(Object sender, FileChangedEvent e)
         {
-            if (txtConsole.InvokeRequired)
-            {
-                txtConsole.Invoke(new Action<Object, FileChangedEvent>(_fw_OnRenamed), sender, e);
-            }
-            else
-            {
+            //if (txtConsole.InvokeRequired)
+            //{
+            //    txtConsole.Invoke(new Action<Object, FileChangedEvent>(_fw_OnRenamed), sender, e);
+            //}
+            //else
+            //{
                 txtConsole.Text += string.Format("[ren] {0} | {1} ----> {2}",
                 Enum.GetName(typeof(ChangeType), e.ChangeType),
                 e.OldFullPath,
                 e.FullPath) + "\r\n";
-            }
+            //}
         }
 
 
