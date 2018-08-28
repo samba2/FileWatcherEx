@@ -67,9 +67,17 @@ namespace FileWatcherEx
             {
                 FileAttributes fileAttributes = File.GetAttributes(directoryInfo.FullName);
 
+                // TODO consider skipping hidden/system folders? See IG Issue #405 comment below
                 if (fileAttributes.HasFlag(FileAttributes.Directory) && fileAttributes.HasFlag(FileAttributes.ReparsePoint))
                 {
-                    this.MakeWatcher(directoryInfo.FullName);
+                    try
+                    {
+                        this.MakeWatcher(directoryInfo.FullName);
+                    }
+                    catch (Exception ex)
+                    {
+                        // IG Issue #405: throws exception on Windows 10 for "c:\users\user\application data" folder and sub-folders.
+                    }
                 }
             }
 
