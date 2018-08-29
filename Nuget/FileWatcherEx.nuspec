@@ -7,11 +7,10 @@
     <authors>Duong Dieu Phap</authors>
     <owners>Duong Dieu Phap</owners>
     <description>
-      A wrapper of C# FileSystemWatcher for Windows, used in ImageGlass project (https://imageglass.org).
-      This project is based on the VSCode FileWatcher: https://github.com/Microsoft/vscode-filewatcher-windows.
+      A wrapper of C# FileSystemWatcher for Windows, used in ImageGlass project (https://imageglass.org). This project is based on the VSCode FileWatcher: https://github.com/Microsoft/vscode-filewatcher-windows.
     </description>
     <releaseNotes>
-      - Add support for SynchronizingObject property (Cross-thread operation)
+      - Fixed: Error reading the C:\Users\User\Application Data directory
     </releaseNotes>
     <summary>
       Features: Standardize the events of C# FileSystemWatcher. No false change notifications when a file system item is created, deleted, changed or renamed. 

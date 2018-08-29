@@ -67,14 +67,16 @@ namespace FileWatcherEx
             {
                 FileAttributes fileAttributes = File.GetAttributes(directoryInfo.FullName);
 
-                // TODO consider skipping hidden/system folders? See IG Issue #405 comment below
+                // TODO: consider skipping hidden/system folders? 
+                // See IG Issue #405 comment below
+                // https://github.com/d2phap/ImageGlass/issues/405
                 if (fileAttributes.HasFlag(FileAttributes.Directory) && fileAttributes.HasFlag(FileAttributes.ReparsePoint))
                 {
                     try
                     {
                         this.MakeWatcher(directoryInfo.FullName);
                     }
-                    catch (Exception ex)
+                    catch (Exception)
                     {
                         // IG Issue #405: throws exception on Windows 10 for "c:\users\user\application data" folder and sub-folders.
                     }

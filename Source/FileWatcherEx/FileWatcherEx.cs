@@ -94,7 +94,7 @@ namespace FileWatcherEx
         {
             if (!Directory.Exists(this.FolderPath)) return;
 
-           
+
 
 
             _processor = new EventProcessor((e) =>
@@ -117,7 +117,7 @@ namespace FileWatcherEx
                             }
                         }
 
-                        
+
                         break;
 
                     case ChangeType.CREATED:
@@ -136,11 +136,11 @@ namespace FileWatcherEx
                             }
                         }
 
-                        
+
                         break;
 
                     case ChangeType.DELETED:
-                        
+
                         InvokeDeletedEvent(this.SynchronizingObject, e);
 
                         void InvokeDeletedEvent(object sender, FileChangedEvent fileEvent)
@@ -233,7 +233,7 @@ namespace FileWatcherEx
             // Start watching
             this._fsw.EnableRaisingEvents = true;
         }
-        
+
 
 
         /// <summary>
