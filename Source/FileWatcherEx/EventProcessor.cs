@@ -39,59 +39,89 @@ namespace FileWatcherEx
         private bool spamWarningLogged = false;
 
 
-
-
         private IEnumerable<FileChangedEvent> NormalizeEvents(FileChangedEvent[] events)
         {
             var mapPathToEvents = new Dictionary<string, FileChangedEvent>();
             var eventsWithoutDuplicates = new List<FileChangedEvent>();
 
-            // Normalize Duplicates
-            foreach (var e in events)
+            // Normalize duplicates
+            foreach (var newEvent in events)
             {
+                mapPathToEvents.TryGetValue(newEvent.FullPath, out var oldEvent); // Try get event from newEvent.FullPath
 
-                // Existing event
-                if (mapPathToEvents.ContainsKey(e.FullPath))
-                {
-                    var existingEvent = mapPathToEvents[e.FullPath];
-                    var currentChangeType = existingEvent.ChangeType;
-                    var newChangeType = e.ChangeType;
-
-                    // ignore CREATE followed by DELETE in one go
-                    if (currentChangeType == ChangeType.CREATED && newChangeType == ChangeType.DELETED)
-                    {
-                        mapPathToEvents.Remove(existingEvent.FullPath);
-                        eventsWithoutDuplicates.Remove(existingEvent);
-                    }
-
-                    // flatten DELETE followed by CREATE into CHANGE
-                    else if (currentChangeType == ChangeType.DELETED && newChangeType == ChangeType.CREATED)
-                    {
-                        existingEvent.ChangeType = ChangeType.CHANGED;
-                    }
-
-                    // Do nothing. Keep the created event
-                    else if (currentChangeType == ChangeType.CREATED && newChangeType == ChangeType.CHANGED)
-                    {
-                    }
-
-                    // Otherwise apply change type
-                    else
-                    {
-                        existingEvent.ChangeType = newChangeType;
-                    }
+                if (oldEvent != null && oldEvent.ChangeType == ChangeType.CREATED && newEvent.ChangeType == ChangeType.DELETED)
+                { // CREATED + DELETED => remove
+                    mapPathToEvents.Remove(oldEvent.FullPath);
+                    eventsWithoutDuplicates.Remove(oldEvent);
                 }
-
-                // New event
                 else
-                {
-                    mapPathToEvents.Add(e.FullPath, e);
-                    eventsWithoutDuplicates.Add(e);
+                if (oldEvent != null && oldEvent.ChangeType == ChangeType.DELETED && newEvent.ChangeType == ChangeType.CREATED)
+                { // DELETED + CREATED => CHANGED
+                    oldEvent.ChangeType = ChangeType.CHANGED;
+                }
+                else
+                if (oldEvent != null && oldEvent.ChangeType == ChangeType.CREATED && newEvent.ChangeType == ChangeType.CHANGED)
+                { // CREATED + CHANGED => CREATED
+                    // Do nothing
+                }
+                else
+                { // Otherwise
+
+                    if (newEvent.ChangeType == ChangeType.RENAMED)
+                    { // If <ANY> + RENAMED
+                        do
+                        {
+                            mapPathToEvents.TryGetValue(newEvent.OldFullPath, out var renameFromEvent); // Try get event from newEvent.OldFullPath
+
+                            if (renameFromEvent != null && renameFromEvent.ChangeType == ChangeType.CREATED)
+                            { // If rename from CREATED file
+                                // Remove data about the CREATED file 
+                                mapPathToEvents.Remove(renameFromEvent.FullPath);
+                                eventsWithoutDuplicates.Remove(renameFromEvent);
+                                // Handle new event as CREATED
+                                newEvent.ChangeType = ChangeType.CREATED;
+                                newEvent.OldFullPath = null;
+
+                                if (oldEvent != null && oldEvent.ChangeType == ChangeType.DELETED)
+                                { // DELETED + CREATED => CHANGED
+                                    newEvent.ChangeType = ChangeType.CHANGED;
+                                }
+                            }
+                            else
+                            if (renameFromEvent != null && renameFromEvent.ChangeType == ChangeType.RENAMED)
+                            { // If rename from RENAMED file
+                                // Remove data about the RENAMED file 
+                                mapPathToEvents.Remove(renameFromEvent.FullPath);
+                                eventsWithoutDuplicates.Remove(renameFromEvent);
+                                // Change OldFullPath
+                                newEvent.OldFullPath = renameFromEvent.OldFullPath;
+                                // Check again
+                                continue;
+                            }
+                            else
+                            { // Otherwise
+                                // Do nothing
+                                //mapPathToEvents.TryGetValue(newEvent.OldFullPath, out oldEvent); // Try get event from newEvent.OldFullPath
+                            }
+                        } while (false);
+                    }
+
+                    if (oldEvent != null)
+                    { // If old event exists
+                        // Replace old event data with data from the new event
+                        oldEvent.ChangeType = newEvent.ChangeType;
+                        oldEvent.OldFullPath = newEvent.OldFullPath;
+                    }
+                    else
+                    { // If old event is not exist
+                        // Add new event
+                        mapPathToEvents.Add(newEvent.FullPath, newEvent);
+                        eventsWithoutDuplicates.Add(newEvent);
+                    }
                 }
             }
 
             // Handle deletes
-            var addedChangeEvents = new List<FileChangedEvent>();
             var deletedPaths = new List<string>();
 
             // This algorithm will remove all DELETE events up to the root folder
@@ -103,30 +133,25 @@ namespace FileWatcherEx
             // 3.) for each DELETE, check if there is a deleted parent and ignore the event in that case
 
             return eventsWithoutDuplicates
-                .Where((e) =>
+                .Select((e, n) => new KeyValuePair<int, FileChangedEvent>(n, e)) // store original position value
+                .OrderBy(e => e.Value.FullPath.Length) // shortest path first
+                .Where(e =>
                 {
-                    if (e.ChangeType != ChangeType.DELETED)
+                    if (e.Value.ChangeType == ChangeType.DELETED)
                     {
-                        addedChangeEvents.Add(e);
-                        return false; // remove ADD / CHANGE
+                        if (deletedPaths.Any(d => IsParent(e.Value.FullPath, d)))
+                        {
+                            return false; // DELETE is ignored if parent is deleted already
+                        }
+
+                        // otherwise mark as deleted
+                        deletedPaths.Add(e.Value.FullPath);
                     }
 
                     return true;
                 })
-                .OrderBy((e) => e.FullPath.Length) // shortest path first
-                .Where((e) =>
-                {
-                    if (deletedPaths.Any(d => IsParent(e.FullPath, d)))
-                    {
-                        return false; // DELETE is ignored if parent is deleted already
-                    }
-
-                    // otherwise mark as deleted
-                    deletedPaths.Add(e.FullPath);
-
-                    return true;
-                })
-                .Concat(addedChangeEvents);
+                .OrderBy(e => e.Key) // restore orinal position
+                .Select(e => e.Value); //  remove unnecessary position value
         }
 
 
@@ -152,10 +177,13 @@ namespace FileWatcherEx
                 var now = DateTime.Now.Ticks;
 
                 // Check for spam
-                if (events.Count == 0) {
+                if (events.Count == 0)
+                {
                     spamWarningLogged = false;
                     spamCheckStartTime = now;
-                } else if (!spamWarningLogged && spamCheckStartTime + EVENT_SPAM_WARNING_THRESHOLD < now) {
+                }
+                else if (!spamWarningLogged && spamCheckStartTime + EVENT_SPAM_WARNING_THRESHOLD < now)
+                {
                     spamWarningLogged = true;
                     logger(string.Format("Warning: Watcher is busy catching up wit {0} file changes in 60 seconds. Latest path is '{1}'", events.Count, fileEvent.FullPath));
                 }
@@ -169,7 +197,8 @@ namespace FileWatcherEx
                 {
                     // Create function to buffer events
                     Action<Task> func = null;
-                    func = (Task value) => {
+                    func = (Task value) =>
+                    {
                         lock (LOCK)
                         {
                             // Check if another event has been received in the meantime
@@ -199,11 +228,11 @@ namespace FileWatcherEx
 
                     // Start function after delay
                     delayStarted = lastEventTime;
-                    delayTask = Task.Delay(EVENT_DELAY).ContinueWith(func);                    
+                    delayTask = Task.Delay(EVENT_DELAY).ContinueWith(func);
                 }
             }
         }
 
-        
+
     }
 }
