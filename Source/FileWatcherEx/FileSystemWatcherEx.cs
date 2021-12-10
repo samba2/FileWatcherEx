@@ -16,6 +16,9 @@ public class FileSystemWatcherEx : IDisposable
     private FileWatcher _watcher = new();
     private FileSystemWatcher _fsw = new();
 
+    // Define the cancellation token.
+    private CancellationTokenSource _cancelSource = new();
+
     #endregion
 
 
@@ -175,22 +178,12 @@ public class FileSystemWatcherEx : IDisposable
                 default:
                     break;
             }
-
-
         }, (log) =>
         {
             Console.WriteLine(string.Format("{0} | {1}", Enum.GetName(typeof(ChangeType), ChangeType.LOG), log));
         });
 
-
-        _thread = new Thread(() =>
-        {
-            while (true)
-            {
-                var e = _fileEventQueue.Take();
-                _processor.ProcessEvent(e);
-            }
-        })
+        _thread = new Thread(() => Thread_DoingWork(_cancelSource.Token))
         {
             // this ensures the thread does not block the process from terminating!
             IsBackground = true
@@ -229,6 +222,25 @@ public class FileSystemWatcherEx : IDisposable
         _fsw.EnableRaisingEvents = true;
     }
 
+    private void Thread_DoingWork(CancellationToken cancelToken)
+    {
+        while (true)
+        {
+            if (cancelToken.IsCancellationRequested)
+                return;
+
+            try
+            {
+                var e = _fileEventQueue.Take(cancelToken);
+                _processor.ProcessEvent(e);
+            }
+            catch (OperationCanceledException)
+            {
+                return;
+            }
+        }
+    }
+
 
     /// <summary>
     /// Stop watching files
@@ -245,11 +257,10 @@ public class FileSystemWatcherEx : IDisposable
             _watcher.Dispose();
         }
 
-        if (_thread != null)
-        {
-            _thread.Abort();
-        }
+        // stop the thread
+        _cancelSource.Cancel();
     }
+    
 
 
     /// <summary>
