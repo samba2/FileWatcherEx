@@ -2,9 +2,9 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-namespace System.IO;
+namespace FileWatcherEx;
 
-class EventProcessor
+internal class EventProcessor
 {
 
     /// <summary>

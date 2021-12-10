@@ -1,9 +1,12 @@
 
+using FileWatcherEx;
+
 namespace Demo
 {
     public partial class Form1 : Form
     {
-        private FileWatcherEx _fw = new();
+        private FileSystemWatcherEx _fw = new();
+
         public Form1()
         {
             InitializeComponent();
@@ -13,7 +16,7 @@ namespace Demo
 
         private void btnStart_Click(object sender, EventArgs e)
         {
-            _fw = new FileWatcherEx(txtPath.Text.Trim());
+            _fw = new FileSystemWatcherEx(txtPath.Text.Trim());
 
             _fw.OnRenamed += FW_OnRenamed;
             _fw.OnCreated += FW_OnCreated;

@@ -1,4 +1,4 @@
-﻿namespace System.IO;
+﻿namespace FileWatcherEx;
 
 public enum ChangeType
 {

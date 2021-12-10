@@ -2,9 +2,9 @@
 using System.Collections.Concurrent;
 using System.ComponentModel;
 
-namespace System.IO;
+namespace FileWatcherEx;
 
-public class FileWatcherEx : IDisposable
+public class FileSystemWatcherEx : IDisposable
 {
 
     #region Private Properties
@@ -78,7 +78,7 @@ public class FileWatcherEx : IDisposable
     /// Initialize new instance of FileWatcherEx
     /// </summary>
     /// <param name="folder"></param>
-    public FileWatcherEx(string folder = "")
+    public FileSystemWatcherEx(string folder = "")
     {
         FolderPath = folder;
     }
