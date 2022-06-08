@@ -10,7 +10,7 @@ namespace FileWatcherEx;
 /// </summary>
 public class FileSystemWatcherEx : IDisposable
 {
-
+    
     #region Private Properties
 
     private Thread? _thread;

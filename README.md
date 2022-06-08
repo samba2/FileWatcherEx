@@ -1,5 +1,5 @@
 # FileWatcherEx for Windows
-A wrapper of C# `FileSystemWatcher` for Windows, used in [ImageGlass](https://github.com/d2phap/ImageGlass) project.
+A wrapper of `System.IO.FileSystemWatcher` to standardize the events and avoid false change notifications, used in [ImageGlass](https://github.com/d2phap/ImageGlass) project.
 
 This project is based on the *VSCode FileWatcher*: https://github.com/Microsoft/vscode-filewatcher-windows
 
@@ -12,7 +12,7 @@ This project is based on the *VSCode FileWatcher*: https://github.com/Microsoft/
 - Nuget package: [https://www.nuget.org/packages/FileWatcherEx](https://www.nuget.org/packages/FileWatcherEx/)
 
 ## Features
-- Standardize the events of C# `FileSystemWatcher`.
+- Standardize the events of `System.IO.FileSystemWatcher`.
 - No false change notifications when a file system item is created, deleted, changed or renamed.
 - Support .NET 6.0.
 
