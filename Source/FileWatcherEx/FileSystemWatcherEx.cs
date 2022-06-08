@@ -32,9 +32,26 @@ public class FileSystemWatcherEx : IDisposable
 
 
     /// <summary>
+    /// The collection of all the filters used to determine what files are monitored in a directory.
+    /// </summary>
+    public System.Collections.ObjectModel.Collection<string> Filters { get; } = new();
+
+
+    /// <summary>
     /// Filter string used for determining what files are monitored in a directory
     /// </summary>
-    public string Filter { get; set; } = "*.*";
+    public string Filter
+    {
+        get
+        {
+            return Filters.Count == 0 ? "*" : Filters[0];
+        }
+        set
+        {
+            Filters.Clear();
+            Filters.Add(value);
+        }
+    }
 
 
     /// <summary>
@@ -213,7 +230,12 @@ public class FileSystemWatcherEx : IDisposable
         _watcher = new FileWatcher();
 
         _fsw = _watcher.Create(FolderPath, onEvent, onError);
-        _fsw.Filter = Filter;
+
+        foreach (var filter in Filters)
+        {
+            _fsw.Filters.Add(filter);
+        }
+
         _fsw.NotifyFilter = NotifyFilter;
         _fsw.IncludeSubdirectories = IncludeSubdirectories;
         _fsw.SynchronizingObject = SynchronizingObject;
