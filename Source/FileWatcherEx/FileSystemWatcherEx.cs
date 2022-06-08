@@ -4,20 +4,24 @@ using System.ComponentModel;
 
 namespace FileWatcherEx;
 
+/// <summary>
+/// A wrapper of <see cref="FileSystemWatcher"/> to standardize the events
+/// and avoid false change notifications.
+/// </summary>
 public class FileSystemWatcherEx : IDisposable
 {
 
     #region Private Properties
 
-    private Thread _thread;
-    private EventProcessor _processor;
-    private BlockingCollection<FileChangedEvent> _fileEventQueue = new();
+    private Thread? _thread;
+    private EventProcessor? _processor;
+    private readonly BlockingCollection<FileChangedEvent> _fileEventQueue = new();
 
-    private FileWatcher _watcher = new();
-    private FileSystemWatcher _fsw = new();
+    private FileWatcher? _watcher;
+    private FileSystemWatcher? _fsw;
 
     // Define the cancellation token.
-    private CancellationTokenSource _cancelSource = new();
+    private readonly CancellationTokenSource _cancelSource = new();
 
     #endregion
 
@@ -26,26 +30,23 @@ public class FileSystemWatcherEx : IDisposable
     #region Public Properties
 
     /// <summary>
-    /// Folder path to watch
+    /// Gets or sets the path of the directory to watch.
     /// </summary>
     public string FolderPath { get; set; } = "";
 
 
     /// <summary>
-    /// The collection of all the filters used to determine what files are monitored in a directory.
+    /// Gets the collection of all the filters used to determine what files are monitored in a directory.
     /// </summary>
     public System.Collections.ObjectModel.Collection<string> Filters { get; } = new();
 
 
     /// <summary>
-    /// Filter string used for determining what files are monitored in a directory
+    /// Gets or sets the filter string used to determine what files are monitored in a directory.
     /// </summary>
     public string Filter
     {
-        get
-        {
-            return Filters.Count == 0 ? "*" : Filters[0];
-        }
+        get => Filters.Count == 0 ? "*" : Filters[0];
         set
         {
             Filters.Clear();
@@ -55,7 +56,11 @@ public class FileSystemWatcherEx : IDisposable
 
 
     /// <summary>
-    /// Gets, sets the type of changes to watch for
+    /// Gets or sets the type of changes to watch for.
+    /// The default is the bitwise OR combination of
+    /// <see cref="NotifyFilters.LastWrite"/>,
+    /// <see cref="NotifyFilters.FileName"/>,
+    /// and <see cref="NotifyFilters.DirectoryName"/>.
     /// </summary>
     public NotifyFilters NotifyFilter { get; set; } = NotifyFilters.LastWrite | NotifyFilters.FileName | NotifyFilters.DirectoryName;
 
@@ -69,38 +74,64 @@ public class FileSystemWatcherEx : IDisposable
     /// <summary>
     /// Gets or sets the object used to marshal the event handler calls issued as a result of a directory change.
     /// </summary>
-    public ISynchronizeInvoke SynchronizingObject { get; set; }
+    public ISynchronizeInvoke? SynchronizingObject { get; set; }
 
     #endregion
 
 
 
     #region Public Events
-    public delegate void DelegateOnChanged(object sender, FileChangedEvent e);
-    public event DelegateOnChanged OnChanged;
 
-    public delegate void DelegateOnDeleted(object sender, FileChangedEvent e);
-    public event DelegateOnDeleted OnDeleted;
+    /// <summary>
+    /// Occurs when a file or directory in the specified
+    /// <see cref="FolderPath"/> is changed.
+    /// </summary>
+    public event DelegateOnChanged? OnChanged;
+    public delegate void DelegateOnChanged(object? sender, FileChangedEvent e);
 
-    public delegate void DelegateOnCreated(object sender, FileChangedEvent e);
-    public event DelegateOnCreated OnCreated;
 
-    public delegate void DelegateOnRenamed(object sender, FileChangedEvent e);
-    public event DelegateOnRenamed OnRenamed;
+    /// <summary>
+    /// Occurs when a file or directory in the specified
+    /// <see cref="FolderPath"/> is deleted.
+    /// </summary>
+    public event DelegateOnDeleted? OnDeleted;
+    public delegate void DelegateOnDeleted(object? sender, FileChangedEvent e);
 
-    public delegate void DelegateOnError(object sender, ErrorEventArgs e);
-    public event DelegateOnError OnError;
+
+    /// <summary>
+    /// Occurs when a file or directory in the specified
+    /// <see cref="FolderPath"/> is created.
+    /// </summary>
+    public event DelegateOnCreated? OnCreated;
+    public delegate void DelegateOnCreated(object? sender, FileChangedEvent e);
+
+
+    /// <summary>
+    /// Occurs when a file or directory in the specified
+    /// <see cref="FolderPath"/> is renamed.
+    /// </summary>
+    public event DelegateOnRenamed? OnRenamed;
+    public delegate void DelegateOnRenamed(object? sender, FileChangedEvent e);
+
+
+    /// <summary>
+    /// Occurs when the instance of <see cref="FileSystemWatcherEx"/> is unable to continue
+    /// monitoring changes or when the internal buffer overflows.
+    /// </summary>
+    public event DelegateOnError? OnError;
+    public delegate void DelegateOnError(object? sender, ErrorEventArgs e);
+
     #endregion
 
 
 
     /// <summary>
-    /// Initialize new instance of FileWatcherEx
+    /// Initialize new instance of <see cref="FileSystemWatcherEx"/>
     /// </summary>
-    /// <param name="folder"></param>
-    public FileSystemWatcherEx(string folder = "")
+    /// <param name="folderPath"></param>
+    public FileSystemWatcherEx(string folderPath = "")
     {
-        FolderPath = folder;
+        FolderPath = folderPath;
     }
 
 
@@ -120,7 +151,7 @@ public class FileSystemWatcherEx : IDisposable
 
                     InvokeChangedEvent(SynchronizingObject, e);
 
-                    void InvokeChangedEvent(object sender, FileChangedEvent fileEvent)
+                    void InvokeChangedEvent(object? sender, FileChangedEvent fileEvent)
                     {
                         if (SynchronizingObject != null && SynchronizingObject.InvokeRequired)
                         {
@@ -139,7 +170,7 @@ public class FileSystemWatcherEx : IDisposable
 
                     InvokeCreatedEvent(SynchronizingObject, e);
 
-                    void InvokeCreatedEvent(object sender, FileChangedEvent fileEvent)
+                    void InvokeCreatedEvent(object? sender, FileChangedEvent fileEvent)
                     {
                         if (SynchronizingObject != null && SynchronizingObject.InvokeRequired)
                         {
@@ -158,7 +189,7 @@ public class FileSystemWatcherEx : IDisposable
 
                     InvokeDeletedEvent(SynchronizingObject, e);
 
-                    void InvokeDeletedEvent(object sender, FileChangedEvent fileEvent)
+                    void InvokeDeletedEvent(object? sender, FileChangedEvent fileEvent)
                     {
                         if (SynchronizingObject != null && SynchronizingObject.InvokeRequired)
                         {
@@ -177,7 +208,7 @@ public class FileSystemWatcherEx : IDisposable
 
                     InvokeRenamedEvent(SynchronizingObject, e);
 
-                    void InvokeRenamedEvent(object sender, FileChangedEvent fileEvent)
+                    void InvokeRenamedEvent(object? sender, FileChangedEvent fileEvent)
                     {
                         if (SynchronizingObject != null && SynchronizingObject.InvokeRequired)
                         {
@@ -244,25 +275,6 @@ public class FileSystemWatcherEx : IDisposable
         _fsw.EnableRaisingEvents = true;
     }
 
-    private void Thread_DoingWork(CancellationToken cancelToken)
-    {
-        while (true)
-        {
-            if (cancelToken.IsCancellationRequested)
-                return;
-
-            try
-            {
-                var e = _fileEventQueue.Take(cancelToken);
-                _processor.ProcessEvent(e);
-            }
-            catch (OperationCanceledException)
-            {
-                return;
-            }
-        }
-    }
-
 
     /// <summary>
     /// Stop watching files
@@ -284,7 +296,6 @@ public class FileSystemWatcherEx : IDisposable
     }
 
 
-
     /// <summary>
     /// Dispose the FileWatcherEx instance
     /// </summary>
@@ -293,7 +304,30 @@ public class FileSystemWatcherEx : IDisposable
         if (_fsw != null)
         {
             _fsw.Dispose();
+            GC.SuppressFinalize(this);
         }
     }
+
+
+
+    private void Thread_DoingWork(CancellationToken cancelToken)
+    {
+        while (true)
+        {
+            if (cancelToken.IsCancellationRequested)
+                return;
+
+            try
+            {
+                var e = _fileEventQueue.Take(cancelToken);
+                _processor?.ProcessEvent(e);
+            }
+            catch (OperationCanceledException)
+            {
+                return;
+            }
+        }
+    }
+
 
 }

@@ -10,20 +10,20 @@ internal class EventProcessor
     /// <summary>
     /// Aggregate and only emit events when changes have stopped for this duration (in ms)
     /// </summary>
-    private static int EVENT_DELAY = 50;
+    private static readonly int EVENT_DELAY = 50;
 
     /// <summary>
     /// Warn after certain time span of event spam (in ticks)
     /// </summary>
-    private static int EVENT_SPAM_WARNING_THRESHOLD = 60 * 1000 * 10000;
+    private static readonly int EVENT_SPAM_WARNING_THRESHOLD = 60 * 1000 * 10000;
 
-    private System.Object LOCK = new System.Object();
-    private Task delayTask = null;
+    private readonly System.Object LOCK = new();
+    private Task? delayTask = null;
 
-    private List<FileChangedEvent> events = new List<FileChangedEvent>();
-    private Action<FileChangedEvent> handleEvent;
+    private readonly List<FileChangedEvent> events = new();
+    private readonly Action<FileChangedEvent> handleEvent;
 
-    private Action<string> logger;
+    private readonly Action<string> logger;
 
     private long lastEventTime = 0;
     private long delayStarted = 0;
@@ -32,7 +32,7 @@ internal class EventProcessor
     private bool spamWarningLogged = false;
 
 
-    private IEnumerable<FileChangedEvent> NormalizeEvents(FileChangedEvent[] events)
+    private static IEnumerable<FileChangedEvent> NormalizeEvents(FileChangedEvent[] events)
     {
         var mapPathToEvents = new Dictionary<string, FileChangedEvent>();
         var eventsWithoutDuplicates = new List<FileChangedEvent>();
@@ -64,7 +64,7 @@ internal class EventProcessor
                 { // If <ANY> + RENAMED
                     do
                     {
-                        mapPathToEvents.TryGetValue(newEvent.OldFullPath, out var renameFromEvent); // Try get event from newEvent.OldFullPath
+                        mapPathToEvents.TryGetValue(newEvent.OldFullPath!, out var renameFromEvent); // Try get event from newEvent.OldFullPath
 
                         if (renameFromEvent != null && renameFromEvent.ChangeType == ChangeType.CREATED)
                         { // If rename from CREATED file
@@ -135,10 +135,10 @@ internal class EventProcessor
                     if (deletedPaths.Any(d => IsParent(e.Value.FullPath, d)))
                     {
                         return false; // DELETE is ignored if parent is deleted already
-                        }
+                    }
 
-                        // otherwise mark as deleted
-                        deletedPaths.Add(e.Value.FullPath);
+                    // otherwise mark as deleted
+                    deletedPaths.Add(e.Value.FullPath);
                 }
 
                 return true;
@@ -148,7 +148,7 @@ internal class EventProcessor
     }
 
 
-    private bool IsParent(string p, string candidate)
+    private static bool IsParent(string p, string candidate)
     {
         return p.IndexOf(candidate + '\\') == 0;
     }
@@ -189,35 +189,34 @@ internal class EventProcessor
             if (delayTask == null)
             {
                 // Create function to buffer events
-                Action<Task> func = null;
-                func = (Task value) =>
+                void func(Task value)
                 {
                     lock (LOCK)
                     {
-                            // Check if another event has been received in the meantime
-                            if (delayStarted == lastEventTime)
+                        // Check if another event has been received in the meantime
+                        if (delayStarted == lastEventTime)
                         {
-                                // Normalize and handle
-                                var normalized = NormalizeEvents(events.ToArray());
+                            // Normalize and handle
+                            var normalized = NormalizeEvents(events.ToArray());
                             foreach (var e in normalized)
                             {
                                 handleEvent(e);
                             }
 
-                                // Reset
-                                events.Clear();
+                            // Reset
+                            events.Clear();
                             delayTask = null;
                         }
 
-                            // Otherwise we have received a new event while this task was
-                            // delayed and we reschedule it.
-                            else
+                        // Otherwise we have received a new event while this task was
+                        // delayed and we reschedule it.
+                        else
                         {
                             delayStarted = lastEventTime;
                             delayTask = Task.Delay(EVENT_DELAY).ContinueWith(func);
                         }
                     }
-                };
+                }
 
                 // Start function after delay
                 delayStarted = lastEventTime;

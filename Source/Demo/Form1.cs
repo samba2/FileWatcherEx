@@ -14,7 +14,7 @@ namespace Demo
 
 
 
-        private void btnStart_Click(object sender, EventArgs e)
+        private void BtnStart_Click(object sender, EventArgs e)
         {
             _fw = new FileSystemWatcherEx(txtPath.Text.Trim());
 
@@ -34,7 +34,7 @@ namespace Demo
             btnStop.Enabled = true;
         }
 
-        private void FW_OnError(object sender, ErrorEventArgs e)
+        private void FW_OnError(object? sender, ErrorEventArgs e)
         {
             if (txtConsole.InvokeRequired)
             {
@@ -46,28 +46,28 @@ namespace Demo
             }
         }
 
-        private void FW_OnChanged(object sender, FileChangedEvent e)
+        private void FW_OnChanged(object? sender, FileChangedEvent e)
         {
             txtConsole.Text += string.Format("[cha] {0} | {1}",
                 Enum.GetName(typeof(ChangeType), e.ChangeType),
                 e.FullPath) + "\r\n";
         }
 
-        private void FW_OnDeleted(object sender, FileChangedEvent e)
+        private void FW_OnDeleted(object? sender, FileChangedEvent e)
         {
             txtConsole.Text += string.Format("[del] {0} | {1}",
                 Enum.GetName(typeof(ChangeType), e.ChangeType),
                 e.FullPath) + "\r\n";
         }
 
-        private void FW_OnCreated(object sender, FileChangedEvent e)
+        private void FW_OnCreated(object? sender, FileChangedEvent e)
         {
             txtConsole.Text += string.Format("[cre] {0} | {1}",
                 Enum.GetName(typeof(ChangeType), e.ChangeType),
                 e.FullPath) + "\r\n";
         }
 
-        private void FW_OnRenamed(object sender, FileChangedEvent e)
+        private void FW_OnRenamed(object? sender, FileChangedEvent e)
         {
             txtConsole.Text += string.Format("[ren] {0} | {1} ----> {2}",
                 Enum.GetName(typeof(ChangeType), e.ChangeType),
@@ -77,7 +77,7 @@ namespace Demo
 
 
 
-        private void btnStop_Click(object sender, EventArgs e)
+        private void BtnStop_Click(object sender, EventArgs e)
         {
             _fw.Stop();
 
@@ -88,7 +88,7 @@ namespace Demo
         }
 
 
-        private void btnSelectFolder_Click(object sender, EventArgs e)
+        private void BtnSelectFolder_Click(object sender, EventArgs e)
         {
             var fb = new FolderBrowserDialog();
 

@@ -25,7 +25,7 @@ public class FileChangedEvent
     /// <summary>
     /// The old full path (used if ChangeType = RENAMED)
     /// </summary>
-    public string OldFullPath { get; set; } = "";
+    public string? OldFullPath { get; set; } = "";
 }
 
 
