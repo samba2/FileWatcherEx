@@ -13,8 +13,8 @@ public class FileSystemWatcherEx : IDisposable
     private EventProcessor? _processor;
     private readonly BlockingCollection<FileChangedEvent> _fileEventQueue = new();
 
-    private FileWatcher _watcher = new();
-    private FileSystemWatcher _fsw = new();
+    private FileWatcher? _watcher;
+    private FileSystemWatcher? _fsw;
 
     // Define the cancellation token.
     private readonly CancellationTokenSource _cancelSource = new();
