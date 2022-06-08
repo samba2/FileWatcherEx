@@ -40,16 +40,17 @@ public class FileSystemWatcherEx : IDisposable
     /// <summary>
     /// Filter string used for determining what files are monitored in a directory
     /// </summary>
-    public string Filter { 
+    public string Filter
+    {
         get
         {
             return Filters.Count == 0 ? "*" : Filters[0];
-        } 
+        }
         set
         {
             Filters.Clear();
             Filters.Add(value);
-        } 
+        }
     }
 
 
@@ -230,7 +231,7 @@ public class FileSystemWatcherEx : IDisposable
 
         _fsw = _watcher.Create(FolderPath, onEvent, onError);
 
-        foreach(var filter in Filters)
+        foreach (var filter in Filters)
         {
             _fsw.Filters.Add(filter);
         }
@@ -281,7 +282,7 @@ public class FileSystemWatcherEx : IDisposable
         // stop the thread
         _cancelSource.Cancel();
     }
-    
+
 
 
     /// <summary>
