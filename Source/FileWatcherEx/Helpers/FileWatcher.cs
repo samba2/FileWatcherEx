@@ -9,7 +9,7 @@ internal class FileWatcher : IDisposable
 {
     private string _watchPath = string.Empty;
     private Action<FileChangedEvent>? _eventCallback = null;
-    private Dictionary<string, FileSystemWatcher> _fwDictionary = new();
+    private readonly Dictionary<string, FileSystemWatcher> _fwDictionary = new();
     private Action<ErrorEventArgs>? _onError = null;
 
 
