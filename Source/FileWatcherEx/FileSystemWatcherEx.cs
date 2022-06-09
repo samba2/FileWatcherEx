@@ -303,12 +303,9 @@ public class FileSystemWatcherEx : IDisposable
     /// </summary>
     public void Dispose()
     {
-        if (_fsw != null)
-        {
-            _fsw.Dispose();
-            _cancelSource?.Dispose();
-            GC.SuppressFinalize(this);
-        }
+        _fsw?.Dispose();
+        _cancelSource?.Dispose();
+        GC.SuppressFinalize(this);
     }
 
 
