@@ -293,7 +293,8 @@ public class FileSystemWatcherEx : IDisposable
         }
 
         // stop the thread
-        _cancelSource.Cancel();
+        _cancelSource?.Cancel();
+        _cancelSource?.Dispose();
     }
 
 
@@ -305,6 +306,7 @@ public class FileSystemWatcherEx : IDisposable
         if (_fsw != null)
         {
             _fsw.Dispose();
+            _cancelSource?.Dispose();
             GC.SuppressFinalize(this);
         }
     }
