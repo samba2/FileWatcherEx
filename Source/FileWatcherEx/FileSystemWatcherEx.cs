@@ -285,12 +285,10 @@ public class FileSystemWatcherEx : IDisposable
         if (_fsw != null)
         {
             _fsw.EnableRaisingEvents = false;
+            _fsw.Dispose();
         }
 
-        if (_watcher != null)
-        {
-            _watcher.Dispose();
-        }
+        _watcher?.Dispose();
 
         // stop the thread
         _cancelSource?.Cancel();
