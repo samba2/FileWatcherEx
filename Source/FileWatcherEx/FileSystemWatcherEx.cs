@@ -21,7 +21,7 @@ public class FileSystemWatcherEx : IDisposable
     private FileSystemWatcher? _fsw;
 
     // Define the cancellation token.
-    private readonly CancellationTokenSource _cancelSource = new();
+    private CancellationTokenSource? _cancelSource;
 
     #endregion
 
@@ -231,6 +231,7 @@ public class FileSystemWatcherEx : IDisposable
             Console.WriteLine(string.Format("{0} | {1}", Enum.GetName(typeof(ChangeType), ChangeType.LOG), log));
         });
 
+        _cancelSource = new();
         _thread = new Thread(() => Thread_DoingWork(_cancelSource.Token))
         {
             // this ensures the thread does not block the process from terminating!
@@ -284,15 +285,14 @@ public class FileSystemWatcherEx : IDisposable
         if (_fsw != null)
         {
             _fsw.EnableRaisingEvents = false;
+            _fsw.Dispose();
         }
 
-        if (_watcher != null)
-        {
-            _watcher.Dispose();
-        }
+        _watcher?.Dispose();
 
         // stop the thread
-        _cancelSource.Cancel();
+        _cancelSource?.Cancel();
+        _cancelSource?.Dispose();
     }
 
 
@@ -301,11 +301,10 @@ public class FileSystemWatcherEx : IDisposable
     /// </summary>
     public void Dispose()
     {
-        if (_fsw != null)
-        {
-            _fsw.Dispose();
-            GC.SuppressFinalize(this);
-        }
+        _fsw?.Dispose();
+        _watcher?.Dispose();
+        _cancelSource?.Dispose();
+        GC.SuppressFinalize(this);
     }
 
 
