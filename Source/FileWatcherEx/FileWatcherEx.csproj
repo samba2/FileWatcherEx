@@ -13,9 +13,9 @@
     <Description>A wrapper of FileSystemWatcher to standardize the events and avoid false change notifications, used in ImageGlass project (https://imageglass.org). This project is based on the VSCode FileWatcher: https://github.com/Microsoft/vscode-filewatcher-windows.</Description>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
     <FileVersion>$(Version)</FileVersion>
-    <VersionPrefix>2.1.0</VersionPrefix>
+    <VersionPrefix>2.1.1</VersionPrefix>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <PackageReleaseNotes>Expose FileSystemWatcher.Filters property in .NET 6</PackageReleaseNotes>
+    <PackageReleaseNotes>Improve and dispose CancellationToken</PackageReleaseNotes>
     <Authors>$(Authors)</Authors>
     <SignAssembly>False</SignAssembly>
     <AssemblyOriginatorKeyFile>C:\Users\d2pha\Desktop\pk.pfx</AssemblyOriginatorKeyFile>
