@@ -32,7 +32,7 @@ internal class EventProcessor
     private bool spamWarningLogged = false;
 
 
-    private static IEnumerable<FileChangedEvent> NormalizeEvents(FileChangedEvent[] events)
+    internal static IEnumerable<FileChangedEvent> NormalizeEvents(FileChangedEvent[] events)
     {
         var mapPathToEvents = new Dictionary<string, FileChangedEvent>();
         var eventsWithoutDuplicates = new List<FileChangedEvent>();
