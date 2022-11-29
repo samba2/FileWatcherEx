@@ -6,158 +6,145 @@ namespace FileWatcherExTests;
 public class EventProcessorTest
 {
     [Fact]
-    public void No_Events_Give_Empty_Result()
+    public void No_Input_Gives_No_Output()
     {
-        var result = EventProcessor.NormalizeEvents(Array.Empty<FileChangedEvent>());
-        Assert.Empty(result);
-
+        var events = NormalizeEvents(Array.Empty<FileChangedEvent>());
+        Assert.Empty(events);
     }
 
     [Fact]
     public void Single_Event_Is_Passed_Through()
     {
-        var ev = BuildFileCreatedEvent(@"c:\a", @"c:\a_old");
+        var events = NormalizeEvents(
+            new FileChangedEvent()
+            {
+                ChangeType = ChangeType.CREATED,
+                FullPath = @"c:\foo",
+                OldFullPath = @"c:\bar"
+            }
+        );
 
-        var result = EventProcessor.NormalizeEvents(new[] { ev }).ToList();
-        Assert.Single(result);
-        Assert.Equal(ev, result.First());
+        Assert.Single(events);
+        var ev = events.First();
+        Assert.Equal(ChangeType.CREATED, ev.ChangeType);
+        Assert.Equal(@"c:\foo", ev.FullPath);
+        Assert.Equal(@"c:\bar", ev.OldFullPath);
     }
 
     [Fact]
-    public void On_Duplicate_Events_The_Old_Event_Is_Updated_With_The_Newest_Data()
+    public void On_Duplicate_Events_The_Latest_Is_Taken()
     {
-        
-        var createdEvent = new FileChangedEvent
-        {
-            ChangeType = ChangeType.CREATED,
-            FullPath = @"c:\1.txt",
-            OldFullPath = @"c:\1_old_path.txt"
-        };
-        
+        var events = NormalizeEvents(
+            new FileChangedEvent
+            {
+                ChangeType = ChangeType.CREATED,
+                FullPath = @"c:\foo",
+                OldFullPath = null
+            },
+            new FileChangedEvent
+            {
+                ChangeType = ChangeType.RENAMED, // differs
+                FullPath = @"c:\foo",
+                OldFullPath = @"c:\bar" // differs as well
+            }
+        );
 
-        var renamedEvent = new FileChangedEvent
-        {
-            ChangeType = ChangeType.RENAMED,     // differs
-            FullPath = @"c:\1.txt",
-            OldFullPath = @"c:\1_different_old_path.txt"   // differs as well
-        };
-        
-        
-        var events = EventProcessor.NormalizeEvents(new[] { createdEvent, renamedEvent }).ToList();
         Assert.Single(events);
-        
         var ev = events.First();
         Assert.Equal(ChangeType.RENAMED, ev.ChangeType);
-        Assert.Equal(@"c:\1.txt", ev.FullPath);
-        Assert.Equal(@"c:\1_different_old_path.txt", ev.OldFullPath);
+        Assert.Equal(@"c:\foo", ev.FullPath);
+        Assert.Equal(@"c:\bar", ev.OldFullPath);
     }
 
     [Fact]
     public void On_Consecutive_Renaming_The_Events_Are_Merged()
     {
-        
-        var renamedEvent1 = new FileChangedEvent
-        {
-            ChangeType = ChangeType.RENAMED,
-            FullPath = @"c:\1.txt",                
-            OldFullPath = @"c:\1_old_path.txt"
-        };
-        
-        var renamedEvent2 = new FileChangedEvent
-        {
-            ChangeType = ChangeType.RENAMED,
-            FullPath = @"c:\1_new_name.txt",
-            OldFullPath = @"c:\1.txt"      // refers to previous renamedEvent1.FullPath
-        };
-        
-        var events = EventProcessor.NormalizeEvents(new[] { renamedEvent1, renamedEvent2 }).ToList();
+        var events = NormalizeEvents(
+            new FileChangedEvent
+            {
+                ChangeType = ChangeType.RENAMED,
+                FullPath = @"c:\foo",
+                OldFullPath = @"c:\bar"
+            },
+            new FileChangedEvent
+            {
+                ChangeType = ChangeType.RENAMED,
+                FullPath = @"c:\bazz",
+                OldFullPath = @"c:\foo" // refers to previous renamedEvent1.FullPath
+            }
+        );
         Assert.Single(events);
-        
         var ev = events.First();
         Assert.Equal(ChangeType.RENAMED, ev.ChangeType);
-        Assert.Equal(@"c:\1_new_name.txt", ev.FullPath);
-        Assert.Equal(@"c:\1_old_path.txt", ev.OldFullPath);
+        Assert.Equal(@"c:\bazz", ev.FullPath);
+        Assert.Equal(@"c:\bar", ev.OldFullPath);
     }
 
     [Fact]
-    public void Rename_After_Create_Gives_Create_Event_With_Updated_Path()
+    public void Rename_After_Create_Gives_Created_Event_With_Updated_Path()
     {
-        
-        var createdEvent = new FileChangedEvent
-        {
-            ChangeType = ChangeType.CREATED,
-            FullPath = @"c:\1.txt",                
-            OldFullPath = @"c:\1_old_path.txt"
-        };
-        
-        var renameEvent = new FileChangedEvent
-        {
-            ChangeType = ChangeType.RENAMED,
-            FullPath = @"c:\1_new_name.txt",
-            OldFullPath = @"c:\1.txt"      // refers to previous createdEvent.FullPath
-        };
-        
-        var events = EventProcessor.NormalizeEvents(new[] { createdEvent, renameEvent }).ToList();
+        var events = NormalizeEvents(
+            new FileChangedEvent
+            {
+                ChangeType = ChangeType.CREATED,
+                FullPath = @"c:\foo",
+                OldFullPath = @"c:\bar"
+            },
+            new FileChangedEvent
+            {
+                ChangeType = ChangeType.RENAMED,
+                FullPath = @"c:\bar",
+                OldFullPath = @"c:\foo" // refers to previous createdEvent.FullPath
+            }
+        );
+
         Assert.Single(events);
-        
         var ev = events.First();
         Assert.Equal(ChangeType.CREATED, ev.ChangeType);
-        Assert.Equal(@"c:\1_new_name.txt", ev.FullPath);
+        Assert.Equal(@"c:\bar", ev.FullPath);
         Assert.Null(ev.OldFullPath);
     }
 
-
-    
-    // TODO better name
-    // TODO revisit test method names
-    // TODO helper function which takes array of FileChangedEvents, directly instanciate file changes in that call
-    // TODO work with foo bar as path names ?
-    
     [Fact]
-    public void Delete_After_Create_Gives_TODO()
+    // This is a complex case, originally extracted by using test coverage.
+    // Scenario:
+    // - file foo is created
+    // - file bar is deleted
+    // - now foo is renamed to the just deleted bar
+    // - this results into a bar changed event
+    public void Rename_After_Create_Gives_Changed_Event()
     {
-        
-        var deleteEvent = new FileChangedEvent
-        {
-            ChangeType = ChangeType.DELETED,
-            FullPath = @"c:\foo",                
-            OldFullPath = null
-        };
-        
-        var createEvent = new FileChangedEvent
-        {
-            ChangeType = ChangeType.CREATED,
-            FullPath = @"c:\bar",
-            OldFullPath = @"c:\fuzz"      
-        };
-        
-        var changedEvent = new FileChangedEvent
-        {
-            ChangeType = ChangeType.RENAMED,
-            FullPath = @"c:\foo",
-            OldFullPath = @"c:\bar"      
-        };
-        
-        var events = EventProcessor.NormalizeEvents(new[] { deleteEvent, createEvent, changedEvent }).ToList();
-        Assert.Single(events);
+        var events = NormalizeEvents(
+            new FileChangedEvent
+            {
+                ChangeType = ChangeType.CREATED,
+                FullPath = @"c:\foo",
+                OldFullPath = null
+            },
+            new FileChangedEvent
+            {
+                ChangeType = ChangeType.DELETED,
+                FullPath = @"c:\bar",
+                OldFullPath = null
+            },
+            new FileChangedEvent
+            {
+                ChangeType = ChangeType.RENAMED,
+                FullPath = @"c:\bar",
+                OldFullPath = @"c:\foo"
+            }
+        );
 
+        Assert.Single(events);
         var ev = events.First();
-        
         Assert.Equal(ChangeType.CHANGED, ev.ChangeType);
-        Assert.Equal(@"c:\foo", ev.FullPath);
+        Assert.Equal(@"c:\bar", ev.FullPath);
         Assert.Null(ev.OldFullPath);
     }
 
-    
-    
-    
-    private static FileChangedEvent BuildFileCreatedEvent(string fullPath, string oldFullPath)
+
+    private static List<FileChangedEvent> NormalizeEvents(params FileChangedEvent[] events)
     {
-        return new FileChangedEvent
-        {
-            ChangeType = ChangeType.CREATED,
-            FullPath = fullPath,
-            OldFullPath = oldFullPath
-        };
+        return EventProcessor.NormalizeEvents(events).ToList();
     }
 }
