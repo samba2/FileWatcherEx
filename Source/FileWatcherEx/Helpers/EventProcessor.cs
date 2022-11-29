@@ -132,22 +132,22 @@ internal class EventProcessor
         return eventsWithoutDuplicates
             .Select((e, n) => new KeyValuePair<int, FileChangedEvent>(n, e)) // store original position value
             .OrderBy(e => e.Value.FullPath.Length) // shortest path first
-            .Where(e => Foo(e, deletedPaths))
+            .Where(e => IsParent(e.Value, deletedPaths))
             .OrderBy(e => e.Key) // restore original position
             .Select(e => e.Value);
     }
 
-    private static bool Foo(KeyValuePair<int, FileChangedEvent> e, List<string> deletedPaths)
+    internal static bool IsParent(FileChangedEvent e, List<string> deletedPaths)
     {
-        if (e.Value.ChangeType == ChangeType.DELETED)
+        if (e.ChangeType == ChangeType.DELETED)
         {
-            if (deletedPaths.Any(d => IsParent(e.Value.FullPath, d)))
+            if (deletedPaths.Any(d => IsParent(e.FullPath, d)))
             {
                 return false; // DELETE is ignored if parent is deleted already
             }
 
             // otherwise mark as deleted
-            deletedPaths.Add(e.Value.FullPath);
+            deletedPaths.Add(e.FullPath);
         }
 
         return true;
@@ -184,7 +184,7 @@ internal class EventProcessor
             else if (!spamWarningLogged && spamCheckStartTime + EVENT_SPAM_WARNING_THRESHOLD < now)
             {
                 spamWarningLogged = true;
-                logger(string.Format("Warning: Watcher is busy catching up wit {0} file changes in 60 seconds. Latest path is '{1}'", events.Count, fileEvent.FullPath));
+                logger(string.Format("Warning: Watcher is busy catching up with {0} file changes in 60 seconds. Latest path is '{1}'", events.Count, fileEvent.FullPath));
             }
 
             // Add into our queue

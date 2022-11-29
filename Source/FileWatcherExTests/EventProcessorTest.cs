@@ -190,6 +190,68 @@ public class EventProcessorTest
     }
 
     [Fact]
+    public void Filter_Passes_Events_Through()
+    {
+        var events = new List<FileChangedEvent>
+        {
+            new()
+            {
+                ChangeType = ChangeType.CREATED,
+                FullPath = @"c:\foo",
+                OldFullPath = null
+            },
+            new()
+            {
+                ChangeType = ChangeType.CHANGED,
+                FullPath = @"c:\bar",
+                OldFullPath = null
+            },
+            new()
+            {
+                ChangeType = ChangeType.DELETED,
+                FullPath = @"c:\bazz",
+                OldFullPath = null
+            }
+        };
+
+        var filtered = EventProcessor.FilterDeleted(events);
+        Assert.Equal(events, filtered);
+    }
+
+    [Fact]
+    public void Filter_Out_Deleted_Event_With_Subdirectory()
+    {
+        var events = new List<FileChangedEvent>
+        {
+            new()
+            {
+                ChangeType = ChangeType.DELETED,
+                FullPath = @"c:\bar",
+                OldFullPath = null
+            },
+            new()
+            {
+                ChangeType = ChangeType.CREATED,
+                FullPath = @"c:\foo",
+                OldFullPath = null
+            },
+            new()
+            {
+                ChangeType = ChangeType.DELETED,
+                FullPath = @"c:\bar\sub",
+                OldFullPath = null
+            }
+        };
+
+        var filtered = EventProcessor.FilterDeleted(events).ToList();
+        Assert.Equal(2, filtered.Count);
+        Assert.Equal(ChangeType.DELETED, filtered[0].ChangeType);
+        Assert.Equal(@"c:\bar", filtered[0].FullPath);
+        Assert.Equal(ChangeType.CREATED, filtered[1].ChangeType);
+        Assert.Equal(@"c:\foo", filtered[1].FullPath);
+    }
+    
+    [Fact]
     public void IsParent()
     {
         Assert.True(EventProcessor.IsParent(@"c:\a\b", @"c:"));
@@ -203,6 +265,41 @@ public class EventProcessorTest
         Assert.False(EventProcessor.IsParent(@"c:\", @"c:\"));
     }
 
+    [Fact]
+    public void Parent_Dir_Is_Detected()
+    {
+        var ev = new FileChangedEvent
+        {
+            ChangeType = ChangeType.DELETED,
+            FullPath = @"c:\foo"
+        };
+
+        Assert.True(EventProcessor.IsParent(ev, new List<string>()));
+    }
+    
+    [Fact]
+    public void Delete_Event_For_Subdirectory_Is_Detected()
+    {
+        var deletedFiles = new List<string>();
+        
+        var parentDirEvent = new FileChangedEvent
+        {
+            ChangeType = ChangeType.DELETED,
+            FullPath = @"c:\foo"
+        };
+        
+        Assert.True(EventProcessor.IsParent(parentDirEvent, deletedFiles));
+
+        
+        var subDirEvent = new FileChangedEvent
+        {
+            ChangeType = ChangeType.DELETED,
+            FullPath = @"c:\foo\bar"
+        };
+        
+        Assert.False(EventProcessor.IsParent(subDirEvent, deletedFiles));
+    }
+    
     private static List<FileChangedEvent> NormalizeEvents(params FileChangedEvent[] events)
     {
         return EventProcessor.NormalizeEvents(events).ToList();
