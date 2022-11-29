@@ -142,6 +142,53 @@ public class EventProcessorTest
         Assert.Null(ev.OldFullPath);
     }
 
+[Fact]
+    public void Result_Suppressed_If_Delete_After_Create()
+    {
+        var events = NormalizeEvents(
+            new FileChangedEvent
+            {
+                ChangeType = ChangeType.CREATED,
+                FullPath = @"c:\foo",
+                OldFullPath = null
+            },
+            new FileChangedEvent
+            {
+                ChangeType = ChangeType.DELETED,
+                FullPath = @"c:\foo",
+                OldFullPath = null
+            }
+        );
+
+        Assert.Empty(events);
+    }
+    
+
+    [Fact]
+    public void Changed_Event_After_Created_Is_Ignored()
+    {
+        var events = NormalizeEvents(
+            new FileChangedEvent
+            {
+                ChangeType = ChangeType.CREATED,
+                FullPath = @"c:\foo",
+                OldFullPath = null
+            },
+            new FileChangedEvent
+            {
+                ChangeType = ChangeType.CHANGED,
+                FullPath = @"c:\foo",
+                OldFullPath = null
+            }
+        );
+
+        Assert.Single(events);
+        var ev = events.First();
+        Assert.Equal(ChangeType.CREATED, ev.ChangeType);
+        Assert.Equal(@"c:\foo", ev.FullPath);
+        Assert.Null(ev.OldFullPath);
+    }
+
 
     private static List<FileChangedEvent> NormalizeEvents(params FileChangedEvent[] events)
     {
