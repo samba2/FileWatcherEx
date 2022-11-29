@@ -16,7 +16,10 @@
     <VersionPrefix>2.2.0</VersionPrefix>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageReleaseNotes>See https://github.com/d2phap/FileWatcherEx/releases</PackageReleaseNotes>
-    <Authors>$(Authors)</Authors>
+    <Authors>d2phap</Authors>
+    <Title>FileWatcherEx - A file system watcher</Title>
+    <IncludeSymbols>True</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
   </PropertyGroup>
 
   <ItemGroup>
