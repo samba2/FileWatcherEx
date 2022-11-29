@@ -113,18 +113,22 @@ internal class EventProcessor
                 }
             }
         }
+        
 
+        return FilterDeleted(eventsWithoutDuplicates); 
+    }
+
+    // This algorithm will remove all DELETE events up to the root folder
+    // that got deleted if any. This ensures that we are not producing
+    // DELETE events for each file inside a folder that gets deleted.
+    //
+    // 1.) split ADD/CHANGE and DELETED events
+    // 2.) sort short deleted paths to the top
+    // 3.) for each DELETE, check if there is a deleted parent and ignore the event in that case
+    private static IEnumerable<FileChangedEvent> FilterDeleted(List<FileChangedEvent> eventsWithoutDuplicates)
+    {
         // Handle deletes
         var deletedPaths = new List<string>();
-
-        // This algorithm will remove all DELETE events up to the root folder
-        // that got deleted if any. This ensures that we are not producing
-        // DELETE events for each file inside a folder that gets deleted.
-        //
-        // 1.) split ADD/CHANGE and DELETED events
-        // 2.) sort short deleted paths to the top
-        // 3.) for each DELETE, check if there is a deleted parent and ignore the event in that case
-
         return eventsWithoutDuplicates
             .Select((e, n) => new KeyValuePair<int, FileChangedEvent>(n, e)) // store original position value
             .OrderBy(e => e.Value.FullPath.Length) // shortest path first
@@ -144,7 +148,7 @@ internal class EventProcessor
                 return true;
             })
             .OrderBy(e => e.Key) // restore orinal position
-            .Select(e => e.Value); //  remove unnecessary position value
+            .Select(e => e.Value);
     }
 
 
