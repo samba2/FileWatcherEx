@@ -17,8 +17,6 @@
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageReleaseNotes>Improve and dispose CancellationToken</PackageReleaseNotes>
     <Authors>$(Authors)</Authors>
-    <SignAssembly>False</SignAssembly>
-    <AssemblyOriginatorKeyFile>C:\Users\d2pha\Desktop\pk.pfx</AssemblyOriginatorKeyFile>
   </PropertyGroup>
 
   <ItemGroup>
