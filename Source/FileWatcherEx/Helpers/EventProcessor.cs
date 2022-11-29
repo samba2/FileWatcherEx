@@ -125,34 +125,36 @@ internal class EventProcessor
     // 1.) split ADD/CHANGE and DELETED events
     // 2.) sort short deleted paths to the top
     // 3.) for each DELETE, check if there is a deleted parent and ignore the event in that case
-    private static IEnumerable<FileChangedEvent> FilterDeleted(List<FileChangedEvent> eventsWithoutDuplicates)
+    internal static IEnumerable<FileChangedEvent> FilterDeleted(IEnumerable<FileChangedEvent> eventsWithoutDuplicates)
     {
         // Handle deletes
         var deletedPaths = new List<string>();
         return eventsWithoutDuplicates
             .Select((e, n) => new KeyValuePair<int, FileChangedEvent>(n, e)) // store original position value
             .OrderBy(e => e.Value.FullPath.Length) // shortest path first
-            .Where(e =>
-            {
-                if (e.Value.ChangeType == ChangeType.DELETED)
-                {
-                    if (deletedPaths.Any(d => IsParent(e.Value.FullPath, d)))
-                    {
-                        return false; // DELETE is ignored if parent is deleted already
-                    }
-
-                    // otherwise mark as deleted
-                    deletedPaths.Add(e.Value.FullPath);
-                }
-
-                return true;
-            })
-            .OrderBy(e => e.Key) // restore orinal position
+            .Where(e => Foo(e, deletedPaths))
+            .OrderBy(e => e.Key) // restore original position
             .Select(e => e.Value);
     }
 
+    private static bool Foo(KeyValuePair<int, FileChangedEvent> e, List<string> deletedPaths)
+    {
+        if (e.Value.ChangeType == ChangeType.DELETED)
+        {
+            if (deletedPaths.Any(d => IsParent(e.Value.FullPath, d)))
+            {
+                return false; // DELETE is ignored if parent is deleted already
+            }
 
-    private static bool IsParent(string p, string candidate)
+            // otherwise mark as deleted
+            deletedPaths.Add(e.Value.FullPath);
+        }
+
+        return true;
+    }
+
+
+    internal static bool IsParent(string p, string candidate)
     {
         return p.IndexOf(candidate + '\\') == 0;
     }

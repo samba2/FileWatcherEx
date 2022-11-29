@@ -189,6 +189,19 @@ public class EventProcessorTest
         Assert.Null(ev.OldFullPath);
     }
 
+    [Fact]
+    public void IsParent()
+    {
+        Assert.True(EventProcessor.IsParent(@"c:\a\b", @"c:"));
+        Assert.True(EventProcessor.IsParent(@"c:\a\b", @"c:\a"));
+
+        // candidate must not have backslash
+        Assert.False(EventProcessor.IsParent(@"c:\a\b", @"c:\"));
+        Assert.False(EventProcessor.IsParent(@"c:\a\b", @"c:\a\"));
+        
+        Assert.False(EventProcessor.IsParent(@"c:\", @"c:\foo"));
+        Assert.False(EventProcessor.IsParent(@"c:\", @"c:\"));
+    }
 
     private static List<FileChangedEvent> NormalizeEvents(params FileChangedEvent[] events)
     {
