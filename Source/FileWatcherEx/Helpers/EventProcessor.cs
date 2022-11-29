@@ -32,7 +32,7 @@ internal class EventProcessor
     private bool spamWarningLogged = false;
 
 
-    private static IEnumerable<FileChangedEvent> NormalizeEvents(FileChangedEvent[] events)
+    internal static IEnumerable<FileChangedEvent> NormalizeEvents(FileChangedEvent[] events)
     {
         var mapPathToEvents = new Dictionary<string, FileChangedEvent>();
         var eventsWithoutDuplicates = new List<FileChangedEvent>();
@@ -113,42 +113,48 @@ internal class EventProcessor
                 }
             }
         }
+        
 
+        return FilterDeleted(eventsWithoutDuplicates); 
+    }
+
+    // This algorithm will remove all DELETE events up to the root folder
+    // that got deleted if any. This ensures that we are not producing
+    // DELETE events for each file inside a folder that gets deleted.
+    //
+    // 1.) split ADD/CHANGE and DELETED events
+    // 2.) sort short deleted paths to the top
+    // 3.) for each DELETE, check if there is a deleted parent and ignore the event in that case
+    internal static IEnumerable<FileChangedEvent> FilterDeleted(IEnumerable<FileChangedEvent> eventsWithoutDuplicates)
+    {
         // Handle deletes
         var deletedPaths = new List<string>();
-
-        // This algorithm will remove all DELETE events up to the root folder
-        // that got deleted if any. This ensures that we are not producing
-        // DELETE events for each file inside a folder that gets deleted.
-        //
-        // 1.) split ADD/CHANGE and DELETED events
-        // 2.) sort short deleted paths to the top
-        // 3.) for each DELETE, check if there is a deleted parent and ignore the event in that case
-
         return eventsWithoutDuplicates
             .Select((e, n) => new KeyValuePair<int, FileChangedEvent>(n, e)) // store original position value
             .OrderBy(e => e.Value.FullPath.Length) // shortest path first
-            .Where(e =>
+            .Where(e => IsParent(e.Value, deletedPaths))
+            .OrderBy(e => e.Key) // restore original position
+            .Select(e => e.Value);
+    }
+
+    internal static bool IsParent(FileChangedEvent e, List<string> deletedPaths)
+    {
+        if (e.ChangeType == ChangeType.DELETED)
+        {
+            if (deletedPaths.Any(d => IsParent(e.FullPath, d)))
             {
-                if (e.Value.ChangeType == ChangeType.DELETED)
-                {
-                    if (deletedPaths.Any(d => IsParent(e.Value.FullPath, d)))
-                    {
-                        return false; // DELETE is ignored if parent is deleted already
-                    }
+                return false; // DELETE is ignored if parent is deleted already
+            }
 
-                    // otherwise mark as deleted
-                    deletedPaths.Add(e.Value.FullPath);
-                }
+            // otherwise mark as deleted
+            deletedPaths.Add(e.FullPath);
+        }
 
-                return true;
-            })
-            .OrderBy(e => e.Key) // restore orinal position
-            .Select(e => e.Value); //  remove unnecessary position value
+        return true;
     }
 
 
-    private static bool IsParent(string p, string candidate)
+    internal static bool IsParent(string p, string candidate)
     {
         return p.IndexOf(candidate + '\\') == 0;
     }
@@ -178,7 +184,7 @@ internal class EventProcessor
             else if (!spamWarningLogged && spamCheckStartTime + EVENT_SPAM_WARNING_THRESHOLD < now)
             {
                 spamWarningLogged = true;
-                logger(string.Format("Warning: Watcher is busy catching up wit {0} file changes in 60 seconds. Latest path is '{1}'", events.Count, fileEvent.FullPath));
+                logger(string.Format("Warning: Watcher is busy catching up with {0} file changes in 60 seconds. Latest path is '{1}'", events.Count, fileEvent.FullPath));
             }
 
             // Add into our queue
