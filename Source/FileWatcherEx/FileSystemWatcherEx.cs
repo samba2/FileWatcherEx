@@ -19,6 +19,7 @@ public class FileSystemWatcherEx : IDisposable
 
     private FileWatcher? _watcher;
     private FileSystemWatcher? _fsw;
+    private readonly FileSystemWatcherWrapper? _watcherWrapper;
 
     // Define the cancellation token.
     private CancellationTokenSource? _cancelSource;
@@ -124,14 +125,15 @@ public class FileSystemWatcherEx : IDisposable
     #endregion
 
 
-
     /// <summary>
     /// Initialize new instance of <see cref="FileSystemWatcherEx"/>
     /// </summary>
     /// <param name="folderPath"></param>
-    public FileSystemWatcherEx(string folderPath = "")
+    /// <param name="watcherWrapper">optional watcher wrapper, used to inject fake implementation</param>
+    public FileSystemWatcherEx(string folderPath = "", FileSystemWatcherWrapper? watcherWrapper = null)
     {
         FolderPath = folderPath;
+        _watcherWrapper = watcherWrapper;
     }
 
 
@@ -261,7 +263,7 @@ public class FileSystemWatcherEx : IDisposable
         // Start watcher
         _watcher = new FileWatcher();
 
-        _fsw = _watcher.Create(FolderPath, onEvent, onError);
+        _fsw = _watcher.Create(FolderPath, onEvent, onError, _watcherWrapper);
 
         foreach (var filter in Filters)
         {

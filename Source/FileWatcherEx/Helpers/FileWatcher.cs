@@ -9,7 +9,7 @@ internal class FileWatcher : IDisposable
 {
     private string _watchPath = string.Empty;
     private Action<FileChangedEvent>? _eventCallback = null;
-    private readonly Dictionary<string, FileSystemWatcher> _fwDictionary = new();
+    private readonly Dictionary<string, FileSystemWatcherWrapper> _fwDictionary = new();
     private Action<ErrorEventArgs>? _onError = null;
 
 
@@ -20,20 +20,18 @@ internal class FileWatcher : IDisposable
     /// <param name="onEvent">onEvent callback</param>
     /// <param name="onError">onError callback</param>
     /// <returns></returns>
-    public FileSystemWatcher Create(string path, Action<FileChangedEvent> onEvent, Action<ErrorEventArgs> onError)
+    public FileSystemWatcherWrapper Create(string path, Action<FileChangedEvent> onEvent, Action<ErrorEventArgs> onError, FileSystemWatcherWrapper? watcher = null)
     {
         _watchPath = path;
         _eventCallback = onEvent;
         _onError = onError;
 
-        var watcher = new FileSystemWatcher
-        {
-            Path = _watchPath,
-            IncludeSubdirectories = true,
-            NotifyFilter = NotifyFilters.LastWrite
-                | NotifyFilters.FileName
-                | NotifyFilters.DirectoryName,
-        };
+        watcher ??= new FileSystemWatcherWrapper();
+        watcher.Path = _watchPath;
+        watcher.IncludeSubdirectories = true;
+        watcher.NotifyFilter = NotifyFilters.LastWrite
+                               | NotifyFilters.FileName
+                               | NotifyFilters.DirectoryName;
 
         // Bind internal events to manipulate the possible symbolic links
         watcher.Created += new(MakeWatcher_Created);
@@ -109,7 +107,7 @@ internal class FileWatcher : IDisposable
     {
         if (!_fwDictionary.ContainsKey(path))
         {
-            var fileSystemWatcherRoot = new FileSystemWatcher
+            var fileSystemWatcherRoot = new FileSystemWatcherWrapper
             {
                 Path = path,
                 IncludeSubdirectories = true,
@@ -139,7 +137,7 @@ internal class FileWatcher : IDisposable
             {
                 if (!_fwDictionary.ContainsKey(item.FullName))
                 {
-                    var fswItem = new FileSystemWatcher
+                    var fswItem = new FileSystemWatcherWrapper
                     {
                         Path = item.FullName,
                         IncludeSubdirectories = true,
@@ -173,7 +171,7 @@ internal class FileWatcher : IDisposable
             if (attrs.HasFlag(FileAttributes.Directory)
                 && attrs.HasFlag(FileAttributes.ReparsePoint))
             {
-                var watcherCreated = new FileSystemWatcher
+                var watcherCreated = new FileSystemWatcherWrapper
                 {
                     Path = e.FullPath,
                     IncludeSubdirectories = true,
