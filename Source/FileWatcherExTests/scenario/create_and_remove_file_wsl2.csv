@@ -1,0 +1,4 @@
+FileName,EventName,DiffInTicks,DiffInMilliseconds
+a.txt,created,0,0
+a.txt,changed,7124,1
+a.txt,deleted,223819,22
