@@ -1,4 +1,19 @@
-﻿## `create_file.csv`
+﻿# Scenarios For Integration Testing
+
+For each scenario:
+- a fresh recording was started in an empty directory
+- the listed commands were executed in a separate terminal
+- the recording was stopped (CTRL + C)
+
+Then the recorded CSV files were used in integration tests using the `ReplayFileSystemWatcherWrapper.cs`.
+
+Example for starting a recording:
+````powershell
+PS C:\Projects\FileWatcherEx\Source\FileSystemEventRecorder> dotnet run C:\temp\fwtest\ C:\Projects\FileWatcherEx\Source\FileWatcherExTests\scenario\create_rename_and_remove_file_wsl2.csv
+````
+# List of Scenarios
+
+## `create_file.csv`
 ````powershell
 New-Item -Path 'c:\temp\fwtest\a.txt' -ItemType File
 ````
