@@ -14,11 +14,13 @@ internal record EventRecord(
     long NowInTicks
 );
 
-// post processed. Calculated before closing program 
+// post processed. Calculated before closing program.
+// data is written to CSV already in the format FileSystemEventArgs requires it (separate dir + filename)
 internal record EventRecordWithDiff(
-    string FullPath,
+    string Directory,
+    string FileName,
     string EventName,
-    string? OldFullPath,
+    string? OldFileName,
     long DiffInTicks, // ticks between passed by from the previous event to now
     double DiffInMilliseconds // milliseconds between previous event and now.
 );
@@ -120,10 +122,15 @@ public static class FileSystemEventRecords
             previousTicks = eventRecord.NowInTicks;
             double diffInMilliseconds = Convert.ToInt64(new TimeSpan(diff).TotalMilliseconds);
 
+            var directory = Path.GetDirectoryName(eventRecord.FullPath) ?? "";
+            var fileName = Path.GetFileName(eventRecord.FullPath);
+            var oldFileName = Path.GetFileName(eventRecord.OldFullPath);
+            
             var record = new EventRecordWithDiff(
-                eventRecord.FullPath,
+                directory,
+                fileName,
                 eventRecord.EventName,
-                eventRecord.OldFullPath,
+                oldFileName,
                 diff,
                 diffInMilliseconds);
             eventsWithDiffs.Add(record);
