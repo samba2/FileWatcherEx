@@ -7,6 +7,7 @@ public interface IFileSystemWatcherWrapper
 {
     string Path { get; set; }
     bool IncludeSubdirectories { get; set; }
+    bool EnableRaisingEvents { get; set; }
     NotifyFilters NotifyFilter { get; set; }
 
     event FileSystemEventHandler Created;
@@ -25,4 +26,6 @@ public interface IFileSystemWatcherWrapper
 public class FileSystemWatcherWrapper : FileSystemWatcher, IFileSystemWatcherWrapper
 {
     // empty on purpose
+    
 }
+

@@ -14,7 +14,7 @@ internal class FileWatcher : IDisposable
 
 
     /// <summary>
-    /// Create new instance of FileSystemWatcher
+    /// Create new instance of FileSystemWatcherWrapper
     /// </summary>
     /// <param name="path">Full folder path to watcher</param>
     /// <param name="onEvent">onEvent callback</param>
@@ -47,6 +47,7 @@ internal class FileWatcher : IDisposable
         watcher.InternalBufferSize = 32768;
         _fwDictionary.Add(path, watcher);
 
+        // this handles sub directories. Probably needs cleanup
         foreach (var dirInfo in new DirectoryInfo(path).GetDirectories())
         {
             var attrs = File.GetAttributes(dirInfo.FullName);
