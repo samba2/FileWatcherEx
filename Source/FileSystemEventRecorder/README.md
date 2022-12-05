@@ -10,9 +10,8 @@ dotnet run C:\temp\fwtest\ C:\temp\fwevents.csv
 
 Example output:
 ````csv
-FileName,EventName,DiffInTicks,DiffInMilliseconds
-foo.txt,created,0,0
-foo.txt,changed,9534,1
-foo.txt,changed,41180869,4118
-foo.txt,deleted,40944961,4094
+FullPath,EventName,OldFullPath,DiffInTicks,DiffInMilliseconds
+C:\temp\fwtest\a.txt,created,,0,0
+C:\temp\fwtest\b.txt,rename,C:\temp\fwtest\a.txt,425188,43
+C:\temp\fwtest\b.txt,deleted,,6695305,670
 ````

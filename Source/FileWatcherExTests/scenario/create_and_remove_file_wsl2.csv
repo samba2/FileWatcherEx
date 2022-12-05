@@ -1,4 +1,4 @@
-FileName,EventName,DiffInTicks,DiffInMilliseconds
-a.txt,created,0,0
-a.txt,changed,7124,1
-a.txt,deleted,223819,22
+FullPath,EventName,OldFullPath,DiffInTicks,DiffInMilliseconds
+C:\temp\fwtest\a.txt,created,,0,0
+C:\temp\fwtest\a.txt,changed,,7204,1
+C:\temp\fwtest\a.txt,deleted,,165845,17

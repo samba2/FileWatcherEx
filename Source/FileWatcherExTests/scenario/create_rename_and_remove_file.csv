@@ -1,0 +1,4 @@
+FullPath,EventName,OldFullPath,DiffInTicks,DiffInMilliseconds
+C:\temp\fwtest\a.txt,created,,0,0
+C:\temp\fwtest\b.txt,rename,C:\temp\fwtest\a.txt,425188,43
+C:\temp\fwtest\b.txt,deleted,,6695305,670

@@ -7,12 +7,18 @@ using FileWatcherEx;
 namespace FileSystemEventRecorder;
 
 // event received from C# FileSystemWatcher
-internal record EventRecord(string? FileName, string EventName, long NowInTicks);
+internal record EventRecord(
+    string FullPath, 
+    string EventName, 
+    string? OldFullPath, // only provided by "rename" event
+    long NowInTicks
+);
 
 // post processed. Calculated before closing program 
 internal record EventRecordWithDiff(
-    string? FileName,
+    string FullPath,
     string EventName,
+    string? OldFullPath,
     long DiffInTicks, // ticks between passed by from the previous event to now
     double DiffInMilliseconds // milliseconds between previous event and now.
 );
@@ -32,19 +38,19 @@ public static class FileSystemEventRecords
                                | NotifyFilters.FileName
                                | NotifyFilters.DirectoryName;
 
-        watcher.Created += (_, fileSystemEventArgs) =>
-            EventRecords.Enqueue(new EventRecord(fileSystemEventArgs.Name, "created", Stopwatch.GetTimestamp()));
-        watcher.Deleted += (_, fileSystemEventArgs) =>
-            EventRecords.Enqueue(new EventRecord(fileSystemEventArgs.Name, "deleted", Stopwatch.GetTimestamp()));
+        watcher.Created += (_, ev) =>
+            EventRecords.Enqueue(new EventRecord(ev.FullPath, "created", null, Stopwatch.GetTimestamp()));
+        watcher.Deleted += (_, ev) =>
+            EventRecords.Enqueue(new EventRecord(ev.FullPath, "deleted", null, Stopwatch.GetTimestamp()));
 
-        watcher.Changed += (_, fileSystemEventArgs) =>
-            EventRecords.Enqueue(new EventRecord(fileSystemEventArgs.Name, "changed", Stopwatch.GetTimestamp()));
-        watcher.Renamed += (_, renamedEventArgs) =>
-            EventRecords.Enqueue(new EventRecord(renamedEventArgs.Name, "rename", Stopwatch.GetTimestamp()));
-        watcher.Error += (_, errorEventArgs) =>
+        watcher.Changed += (_, ev) =>
+            EventRecords.Enqueue(new EventRecord(ev.FullPath, "changed", null,  Stopwatch.GetTimestamp()));
+        watcher.Renamed += (_, ev) =>
+            EventRecords.Enqueue(new EventRecord(ev.FullPath, "rename", ev.OldFullPath, Stopwatch.GetTimestamp()));
+        watcher.Error += (_, ev) =>
         {
-            EventRecords.Enqueue(new EventRecord(null, "error", Stopwatch.GetTimestamp()));
-            Console.WriteLine($"Error: {errorEventArgs.GetException()}");
+            EventRecords.Enqueue(new EventRecord("", "error", null, Stopwatch.GetTimestamp()));
+            Console.WriteLine($"Error: {ev.GetException()}");
         };
 
         // taken from existing code 
@@ -115,8 +121,9 @@ public static class FileSystemEventRecords
             double diffInMilliseconds = Convert.ToInt64(new TimeSpan(diff).TotalMilliseconds);
 
             var record = new EventRecordWithDiff(
-                eventRecord.FileName,
+                eventRecord.FullPath,
                 eventRecord.EventName,
+                eventRecord.OldFullPath,
                 diff,
                 diffInMilliseconds);
             eventsWithDiffs.Add(record);
