@@ -59,7 +59,8 @@ public static class FileSystemEventRecords
         watcher.InternalBufferSize = 32768;
         watcher.EnableRaisingEvents = true;
 
-        Console.WriteLine("Sleeping...");
+        Console.WriteLine($"Recording. Now go ahead and perform the desired file system activities in {watchedDirectory}. " +
+                          "Press CTRL + C to stop the recording.");
         Console.CancelKeyPress += (_, _) =>
         {
             Console.WriteLine("Exiting.");
