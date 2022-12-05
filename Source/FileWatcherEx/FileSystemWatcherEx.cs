@@ -18,8 +18,8 @@ public class FileSystemWatcherEx : IDisposable
     private readonly BlockingCollection<FileChangedEvent> _fileEventQueue = new();
 
     private FileWatcher? _watcher;
-    private FileSystemWatcher? _fsw;
-    private readonly FileSystemWatcherWrapper? _watcherWrapper;
+    private IFileSystemWatcherWrapper? _fsw;
+    private readonly IFileSystemWatcherWrapper? _watcherWrapper;
 
     // Define the cancellation token.
     private CancellationTokenSource? _cancelSource;
@@ -130,7 +130,7 @@ public class FileSystemWatcherEx : IDisposable
     /// </summary>
     /// <param name="folderPath"></param>
     /// <param name="watcherWrapper">optional watcher wrapper, used to inject fake implementation</param>
-    public FileSystemWatcherEx(string folderPath = "", FileSystemWatcherWrapper? watcherWrapper = null)
+    public FileSystemWatcherEx(string folderPath = "", IFileSystemWatcherWrapper? watcherWrapper = null)
     {
         FolderPath = folderPath;
         _watcherWrapper = watcherWrapper;

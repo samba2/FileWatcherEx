@@ -9,7 +9,7 @@ internal class FileWatcher : IDisposable
 {
     private string _watchPath = string.Empty;
     private Action<FileChangedEvent>? _eventCallback = null;
-    private readonly Dictionary<string, FileSystemWatcherWrapper> _fwDictionary = new();
+    private readonly Dictionary<string, IFileSystemWatcherWrapper> _fwDictionary = new();
     private Action<ErrorEventArgs>? _onError = null;
 
 
@@ -19,8 +19,9 @@ internal class FileWatcher : IDisposable
     /// <param name="path">Full folder path to watcher</param>
     /// <param name="onEvent">onEvent callback</param>
     /// <param name="onError">onError callback</param>
+    /// <param name="watcher"></param>
     /// <returns></returns>
-    public FileSystemWatcherWrapper Create(string path, Action<FileChangedEvent> onEvent, Action<ErrorEventArgs> onError, FileSystemWatcherWrapper? watcher = null)
+    public IFileSystemWatcherWrapper Create(string path, Action<FileChangedEvent> onEvent, Action<ErrorEventArgs> onError, IFileSystemWatcherWrapper? watcher = null)
     {
         _watchPath = path;
         _eventCallback = onEvent;

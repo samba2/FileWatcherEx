@@ -1,4 +1,7 @@
-﻿namespace FileWatcherEx;
+﻿using System.Collections.ObjectModel;
+using System.ComponentModel;
+
+namespace FileWatcherEx;
 
 /// <summary>
 /// Interface around .NET FileSystemWatcher to be able to replace it with a fake implementation
@@ -6,6 +9,8 @@
 public interface IFileSystemWatcherWrapper
 {
     string Path { get; set; }
+
+    Collection<string> Filters { get; }
     bool IncludeSubdirectories { get; set; }
     bool EnableRaisingEvents { get; set; }
     NotifyFilters NotifyFilter { get; set; }
@@ -17,6 +22,10 @@ public interface IFileSystemWatcherWrapper
     event ErrorEventHandler Error;
     
     int InternalBufferSize { get; set; }
+
+    public ISynchronizeInvoke? SynchronizingObject { get; set; }
+    
+    void Dispose();
 }
 
 /// <summary>
@@ -25,7 +34,6 @@ public interface IFileSystemWatcherWrapper
 /// </summary>
 public class FileSystemWatcherWrapper : FileSystemWatcher, IFileSystemWatcherWrapper
 {
-    // empty on purpose
-    
+    // intentionally empty
 }
 
