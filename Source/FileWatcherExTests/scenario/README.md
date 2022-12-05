@@ -46,10 +46,20 @@ mv /mnt/c/temp/fwtest/a.txt /mnt/c/temp/fwtest/b.txt
 ````
 
 ## `create_rename_and_remove_file_wsl2.csv`
-Create rename and remove file in WSL 2. On file creation, a second "changed" event is written.
+Create, rename and remove file in WSL 2. On file creation, a second "changed" event is written.
 ````sh
 touch /mnt/c/temp/fwtest/a.txt
 mv /mnt/c/temp/fwtest/a.txt /mnt/c/temp/fwtest/b.txt 
+rm /mnt/c/temp/fwtest/b.txt
+````
+
+## `create_rename_and_remove_file_with_wait_time_wsl2.csv`
+Create, rename and remove file in WSL 2. Additionally, some wait time is added.
+````sh
+touch /mnt/c/temp/fwtest/a.txt
+sleep 1
+mv /mnt/c/temp/fwtest/a.txt /mnt/c/temp/fwtest/b.txt 
+sleep 1
 rm /mnt/c/temp/fwtest/b.txt
 ````
 

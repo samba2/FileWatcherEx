@@ -126,6 +126,31 @@ public class FileWatcherExIntegrationTest
     }
 
     
+    [Fact]
+    public void Create_Rename_And_Remove_Single_File_With_Wait_Time_Via_WSL2()
+    {
+        _fileWatcher.Start();
+        _replayer.Replay(@"scenario\create_rename_and_remove_file_with_wait_time_wsl2.csv");
+        _fileWatcher.Stop();
+
+        Assert.Equal(3, _events.Count);
+        var ev1 = _events.ToList()[0];
+        var ev2 = _events.ToList()[1];
+        var ev3 = _events.ToList()[2];
+
+        Assert.Equal(ChangeType.CREATED, ev1.ChangeType);
+        Assert.Equal(@"C:\temp\fwtest\a.txt", ev1.FullPath);
+
+        Assert.Equal(ChangeType.RENAMED, ev2.ChangeType);
+        Assert.Equal(@"C:\temp\fwtest\b.txt", ev2.FullPath);
+        Assert.Equal(@"C:\temp\fwtest\a.txt", ev2.OldFullPath);
+
+        Assert.Equal(ChangeType.DELETED, ev3.ChangeType);
+        Assert.Equal(@"C:\temp\fwtest\b.txt", ev3.FullPath);
+        Assert.Equal("", ev3.OldFullPath);
+    }
+
+    
     [Fact(Skip = "requires real (Windows) file system")]
     public void SimpleRealFileSystemTest()
     {
