@@ -46,7 +46,7 @@ public static class FileSystemEventRecords
         watcher.Changed += (_, ev) =>
             EventRecords.Enqueue(new EventRecord(ev.FullPath, "changed", null,  Stopwatch.GetTimestamp()));
         watcher.Renamed += (_, ev) =>
-            EventRecords.Enqueue(new EventRecord(ev.FullPath, "rename", ev.OldFullPath, Stopwatch.GetTimestamp()));
+            EventRecords.Enqueue(new EventRecord(ev.FullPath, "renamed", ev.OldFullPath, Stopwatch.GetTimestamp()));
         watcher.Error += (_, ev) =>
         {
             EventRecords.Enqueue(new EventRecord("", "error", null, Stopwatch.GetTimestamp()));
