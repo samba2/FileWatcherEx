@@ -8,7 +8,7 @@ namespace FileWatcherEx;
 /// A wrapper of <see cref="FileSystemWatcher"/> to standardize the events
 /// and avoid false change notifications.
 /// </summary>
-public class FileSystemWatcherEx : IDisposable
+public class FileSystemWatcherEx : IDisposable, IFileSystemWatcherEx
 {
     
     #region Private Properties
