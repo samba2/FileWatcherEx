@@ -244,8 +244,7 @@ public class FileWatcherExIntegrationTest : IDisposable
         Assert.Equal(@"C:\temp\fwtest\test.png.crdownload", ev2.OldFullPath);
     }
 
-    // this is probably an issue. When a directory is created and right after a file is created as well
-    // the file is filtered out although the original events contain it.
+    // instantly removed file is not in the events list
     [Fact]
     public void CreateSubDirectoryAddAndRemoveFile()
     {
@@ -265,6 +264,36 @@ public class FileWatcherExIntegrationTest : IDisposable
         Assert.Equal(@"", ev2.OldFullPath);
     }
     
+    [Fact]
+    public void CreateSubDirectoryAddAndRemoveFileWithSleep()
+    {
+        _fileWatcher.Start();
+        _replayer.Replay(@"scenario\create_subdirectory_add_and_remove_file_with_sleep.csv");
+        _fileWatcher.Stop();
+
+        Assert.Equal(4, _events.Count);
+        var ev1 = _events.ToList()[0];
+        var ev2 = _events.ToList()[1];
+        var ev3 = _events.ToList()[2];
+        var ev4 = _events.ToList()[3];
+        
+        Assert.Equal(ChangeType.CREATED, ev1.ChangeType);
+        Assert.Equal(@"C:\temp\fwtest\subdir", ev1.FullPath);
+        
+        Assert.Equal(ChangeType.CREATED, ev2.ChangeType);
+        Assert.Equal(@"C:\temp\fwtest\subdir\a.txt", ev2.FullPath);
+        Assert.Equal(@"", ev2.OldFullPath);
+
+        // TODO this could be filtered out
+        Assert.Equal(ChangeType.CHANGED, ev3.ChangeType);
+        Assert.Equal(@"C:\temp\fwtest\subdir", ev3.FullPath);
+        Assert.Equal(@"", ev3.OldFullPath);
+
+        Assert.Equal(ChangeType.DELETED, ev4.ChangeType);
+        Assert.Equal(@"C:\temp\fwtest\subdir\a.txt", ev4.FullPath);
+        Assert.Equal(@"", ev4.OldFullPath);
+    }
+
     // cleanup
     public void Dispose()
     {

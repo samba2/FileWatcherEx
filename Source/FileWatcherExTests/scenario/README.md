@@ -74,9 +74,18 @@ Manually create, rename and delete a file in the Windows explorer.
 Download (right click, "Save image as") single image via Edge 106.0.1370.42.
 
 ## `create_subdirectory_add_and_remove_file.csv`
-Create, rename and remove file in WSL 2. Additionally, some wait time is added.
+In WSL2, create a subdirectory, create and remove a file.
 ````sh
 mkdir -p /mnt/c/temp/fwtest/subdir/
 touch /mnt/c/temp/fwtest/subdir/a.txt
+rm /mnt/c/temp/fwtest/subdir/a.txt
+````
+
+## `create_subdirectory_add_and_remove_file_with_sleep.csv`
+In WSL2, create a subdirectory, Create the file, wait for a while, then remove it.
+````sh
+mkdir -p /mnt/c/temp/fwtest/subdir/
+touch /mnt/c/temp/fwtest/subdir/a.txt
+sleep 1
 rm /mnt/c/temp/fwtest/subdir/a.txt
 ````
