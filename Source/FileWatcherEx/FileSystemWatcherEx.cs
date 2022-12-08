@@ -19,7 +19,7 @@ public class FileSystemWatcherEx : IDisposable
 
     private FileWatcher? _watcher;
     private IFileSystemWatcherWrapper? _fsw;
-    private readonly IFileSystemWatcherWrapper? _watcherWrapper;
+    private readonly IFileSystemWatcherWrapper? _injectedWatcherWrapper;
 
     // Define the cancellation token.
     private CancellationTokenSource? _cancelSource;
@@ -133,7 +133,7 @@ public class FileSystemWatcherEx : IDisposable
     public FileSystemWatcherEx(string folderPath = "", IFileSystemWatcherWrapper? watcherWrapper = null)
     {
         FolderPath = folderPath;
-        _watcherWrapper = watcherWrapper;
+        _injectedWatcherWrapper = watcherWrapper;
     }
 
 
@@ -263,7 +263,7 @@ public class FileSystemWatcherEx : IDisposable
         // Start watcher
         _watcher = new FileWatcher();
 
-        _fsw = _watcher.Create(FolderPath, onEvent, onError, _watcherWrapper);
+        _fsw = _watcher.Create(FolderPath, onEvent, onError, _injectedWatcherWrapper);
 
         foreach (var filter in Filters)
         {

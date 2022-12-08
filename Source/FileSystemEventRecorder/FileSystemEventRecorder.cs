@@ -25,6 +25,9 @@ internal record EventRecordWithDiff(
     double DiffInMilliseconds // milliseconds between previous event and now.
 );
 
+/// <summary>
+/// Command line tool to capture the raw events of the native FileSystemWatcher class in a CSV file
+/// </summary>
 public static class FileSystemEventRecords
 {
     private static readonly ConcurrentQueue<EventRecord> EventRecords = new();
@@ -33,7 +36,7 @@ public static class FileSystemEventRecords
     {
         var (watchedDirectory, csvOutputFile) = ProcessArguments(args); 
 
-        var watcher = new FileSystemWatcherWrapper();
+        var watcher = new FileSystemWatcher();
         watcher.Path = watchedDirectory;
         watcher.IncludeSubdirectories = true;
         watcher.NotifyFilter = NotifyFilters.LastWrite
