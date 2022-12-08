@@ -1,0 +1,5 @@
+Directory,FileName,EventName,OldFileName,DiffInTicks,DiffInMilliseconds
+C:\temp\fwtest,test.png,created,,0,0
+C:\temp\fwtest,test.png,deleted,,8470,1
+C:\temp\fwtest,test.png.crdownload,created,,3352286,335
+C:\temp\fwtest,test.png,renamed,test.png.crdownload,1451627,145

@@ -225,4 +225,22 @@ public class FileWatcherExIntegrationTest
         Assert.Equal("", ev3.OldFullPath);
     }
 
+    [Fact]
+    public void DownloadImageViaEdgeBrowser()
+    {
+        _fileWatcher.Start();
+        _replayer.Replay(@"scenario\download_image_via_Edge_browser.csv");
+        _fileWatcher.Stop();
+
+        Assert.Equal(2, _events.Count);
+        var ev1 = _events.ToList()[0];
+        var ev2 = _events.ToList()[1];
+
+        Assert.Equal(ChangeType.CREATED, ev1.ChangeType);
+        Assert.Equal(@"C:\temp\fwtest\test.png.crdownload", ev1.FullPath);
+        
+        Assert.Equal(ChangeType.RENAMED, ev2.ChangeType);
+        Assert.Equal(@"C:\temp\fwtest\test.png", ev2.FullPath);
+        Assert.Equal(@"C:\temp\fwtest\test.png.crdownload", ev2.OldFullPath);
+    }
 }

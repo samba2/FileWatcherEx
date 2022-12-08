@@ -69,3 +69,7 @@ to "foo.txt".
 
 ## `create_rename_and_delete_file_via_explorer.csv`
 Manually create, rename and delete a file in the Windows explorer.
+
+## `download_image_via_Edge_browser.csv`
+Download (right click, "Save image as") single image via Edge 106.0.1370.42.
+
