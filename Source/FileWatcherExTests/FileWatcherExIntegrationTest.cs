@@ -180,4 +180,49 @@ public class FileWatcherExIntegrationTest
         Assert.Equal(@"c:\temp\fwtest\b.txt", ev.FullPath);
         Assert.Equal("", ev.OldFullPath);
     }
+    
+    [Fact]
+    public void ManuallyCreateAndRenameFileViaWindowsExplorer()
+    {
+        _fileWatcher.Start();
+        _replayer.Replay(@"scenario\create_and_rename_file_via_explorer.csv");
+        _fileWatcher.Stop();
+
+        Assert.Equal(2, _events.Count);
+
+        var ev1 = _events.ToList()[0];
+        var ev2 = _events.ToList()[1];
+
+        Assert.Equal(ChangeType.CREATED, ev1.ChangeType);
+        Assert.Equal(@"C:\temp\fwtest\New Text Document.txt", ev1.FullPath);
+
+        Assert.Equal(ChangeType.RENAMED, ev2.ChangeType);
+        Assert.Equal(@"C:\temp\fwtest\foo.txt", ev2.FullPath);
+        Assert.Equal(@"C:\temp\fwtest\New Text Document.txt", ev2.OldFullPath);
+    }
+
+    [Fact]
+    public void ManuallyCreateRenameAndDeleteFileViaWindowsExplorer()
+    {
+        _fileWatcher.Start();
+        _replayer.Replay(@"scenario\create_rename_and_delete_file_via_explorer.csv");
+        _fileWatcher.Stop();
+
+        Assert.Equal(3, _events.Count);
+        var ev1 = _events.ToList()[0];
+        var ev2 = _events.ToList()[1];
+        var ev3 = _events.ToList()[2];
+
+        Assert.Equal(ChangeType.CREATED, ev1.ChangeType);
+        Assert.Equal(@"C:\temp\fwtest\New Text Document.txt", ev1.FullPath);
+
+        Assert.Equal(ChangeType.RENAMED, ev2.ChangeType);
+        Assert.Equal(@"C:\temp\fwtest\foo.txt", ev2.FullPath);
+        Assert.Equal(@"C:\temp\fwtest\New Text Document.txt", ev2.OldFullPath);
+
+        Assert.Equal(ChangeType.DELETED, ev3.ChangeType);
+        Assert.Equal(@"C:\temp\fwtest\foo.txt", ev3.FullPath);
+        Assert.Equal("", ev3.OldFullPath);
+    }
+
 }

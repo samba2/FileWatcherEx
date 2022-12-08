@@ -63,4 +63,9 @@ sleep 1
 rm /mnt/c/temp/fwtest/b.txt
 ````
 
+## `create_and_rename_file_via_explorer.csv`
+Manually create a file in the Windows explorer. Change the default name "New Text Document.txt"
+to "foo.txt".
 
+## `create_rename_and_delete_file_via_explorer.csv`
+Manually create, rename and delete a file in the Windows explorer.
