@@ -1,0 +1,7 @@
+Directory,FileName,EventName,OldFileName,DiffInTicks,DiffInMilliseconds
+C:\temp\fwtest,subdir,created,,0,0
+C:\temp\fwtest,symlink_subdir,created,,287271,29
+C:\temp\fwtest\subdir,foo.txt,created,,571620,57
+C:\temp\fwtest,subdir,changed,,7601128,760
+C:\temp\fwtest\subdir,foo.txt,deleted,,5158,1
+C:\temp\fwtest,subdir,changed,,1527420,153

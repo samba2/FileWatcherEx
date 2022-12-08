@@ -89,3 +89,13 @@ touch /mnt/c/temp/fwtest/subdir/a.txt
 sleep 1
 rm /mnt/c/temp/fwtest/subdir/a.txt
 ````
+
+## `create_file_inside_symbolic_link_directory`
+Create subdir, create symbolic link to it and then place file inside this symbolic link dir. 
+
+````powershell
+New-Item –itemType Directory -Path 'c:\temp\fwtest\subdir'
+New-Item -ItemType Junction -Path 'c:\temp\fwtest\symlink_subdir' -Target 'c:\temp\fwtest\subdir'
+New-Item -ItemType File -Path 'c:\temp\fwtest\symlink_subdir\foo.txt' 
+Remove-Item -Path 'c:\temp\fwtest\symlink_subdir\foo.txt' -Recurse
+````

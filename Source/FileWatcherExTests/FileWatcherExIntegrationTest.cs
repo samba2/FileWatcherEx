@@ -294,6 +294,20 @@ public class FileWatcherExIntegrationTest : IDisposable
         Assert.Equal(@"", ev4.OldFullPath);
     }
 
+    // TODO This scenario tries to test the code paths checking for a "reparse point"
+    // which is a symbolic link in NTFS: https://learn.microsoft.com/en-us/windows/win32/fileio/reparse-points
+    // Currently, the test setup does not support this. Namely, calls to File.GetAttributes(...) and
+    // File.GetAttributes(...) would need to be wrapped and passed in e.g. as a Func
+    [Fact (Skip = "test setup needs to be extended")]
+    public void CreateFileInsideSymbolicLinkDirectory()
+    {
+        _fileWatcher.Start();
+        _replayer.Replay(@"scenario\create_file_inside_symbolic_link_directory.csv");
+        _fileWatcher.Stop();
+
+        Assert.Equal(6, _events.Count);
+    }
+
     // cleanup
     public void Dispose()
     {
