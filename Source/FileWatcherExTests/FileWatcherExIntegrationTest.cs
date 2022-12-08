@@ -4,6 +4,10 @@ using Xunit;
 
 namespace FileWatcherExTests;
 
+/// <summary>
+/// Integration/ Golden master test for FileWatcherEx
+/// Considers C:\temp\fwtest to be the test directory
+/// </summary>
 public class FileWatcherExIntegrationTest : IDisposable
 {
     private ConcurrentQueue<FileChangedEvent> _events;
