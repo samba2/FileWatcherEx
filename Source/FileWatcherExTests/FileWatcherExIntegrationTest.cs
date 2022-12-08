@@ -4,7 +4,7 @@ using Xunit;
 
 namespace FileWatcherExTests;
 
-public class FileWatcherExIntegrationTest
+public class FileWatcherExIntegrationTest : IDisposable
 {
     private ConcurrentQueue<FileChangedEvent> _events;
     private ReplayFileSystemWatcherWrapper _replayer;
@@ -242,5 +242,32 @@ public class FileWatcherExIntegrationTest
         Assert.Equal(ChangeType.RENAMED, ev2.ChangeType);
         Assert.Equal(@"C:\temp\fwtest\test.png", ev2.FullPath);
         Assert.Equal(@"C:\temp\fwtest\test.png.crdownload", ev2.OldFullPath);
+    }
+
+    // this is probably an issue. When a directory is created and right after a file is created as well
+    // the file is filtered out although the original events contain it.
+    [Fact]
+    public void CreateSubDirectoryAddAndRemoveFile()
+    {
+        _fileWatcher.Start();
+        _replayer.Replay(@"scenario\create_subdirectory_add_and_remove_file.csv");
+        _fileWatcher.Stop();
+
+        Assert.Equal(2, _events.Count);
+        var ev1 = _events.ToList()[0];
+        var ev2 = _events.ToList()[1];
+        
+        Assert.Equal(ChangeType.CREATED, ev1.ChangeType);
+        Assert.Equal(@"C:\temp\fwtest\subdir", ev1.FullPath);
+        
+        Assert.Equal(ChangeType.CHANGED, ev2.ChangeType);
+        Assert.Equal(@"C:\temp\fwtest\subdir", ev2.FullPath);
+        Assert.Equal(@"", ev2.OldFullPath);
+    }
+    
+    // cleanup
+    public void Dispose()
+    {
+        _fileWatcher.Dispose();
     }
 }
