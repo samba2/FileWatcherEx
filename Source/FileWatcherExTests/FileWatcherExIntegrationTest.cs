@@ -16,14 +16,15 @@ public class FileWatcherExIntegrationTest : IDisposable
         _events = new();
         _replayer = new();
         var unusedDir = Path.GetTempPath();
-        _fileWatcher = new FileSystemWatcherEx(unusedDir, _replayer);
+        
+        const string recordingDir = @"C:\temp\fwtest";
+        _fileWatcher = new FileSystemWatcherEx(recordingDir, _replayer);
 
         _fileWatcher.OnCreated += (_, ev) => _events.Enqueue(ev);
         _fileWatcher.OnDeleted += (_, ev) => _events.Enqueue(ev);
         _fileWatcher.OnChanged += (_, ev) => _events.Enqueue(ev);
         _fileWatcher.OnRenamed += (_, ev) => _events.Enqueue(ev);
     }
-
 
     [Fact]
     public void Create_Single_File()
