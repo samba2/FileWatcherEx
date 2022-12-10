@@ -24,6 +24,7 @@ public class FileWatcherExIntegrationTest : IDisposable
         
         const string recordingDir = @"C:\temp\fwtest";
         _fileWatcher = new FileSystemWatcherEx(recordingDir, _replayer);
+        _fileWatcher.IncludeSubdirectories = true;
 
         _fileWatcher.OnCreated += (_, ev) => _events.Enqueue(ev);
         _fileWatcher.OnDeleted += (_, ev) => _events.Enqueue(ev);
@@ -31,6 +32,7 @@ public class FileWatcherExIntegrationTest : IDisposable
         _fileWatcher.OnRenamed += (_, ev) => _events.Enqueue(ev);
     }
 
+    
     [Fact]
     public void Create_Single_File()
     {
@@ -42,6 +44,7 @@ public class FileWatcherExIntegrationTest : IDisposable
         Assert.Equal(@"C:\temp\fwtest\a.txt", ev.FullPath);
         Assert.Equal("", ev.OldFullPath);
     }
+    
 
     [Fact]
     public void Create_And_Remove_Single_File()
@@ -84,6 +87,7 @@ public class FileWatcherExIntegrationTest : IDisposable
         Assert.Equal("", ev3.OldFullPath);
     }
 
+    
     [Fact]
     // filters out 2nd "changed" event
     public void Create_Single_File_Via_WSL2()
@@ -96,6 +100,7 @@ public class FileWatcherExIntegrationTest : IDisposable
         Assert.Equal(@"C:\temp\fwtest\a.txt", ev.FullPath);
         Assert.Equal("", ev.OldFullPath);
     }
+    
     
     [Fact]
     // scenario creates "created" "changed" and "renamed" event.
@@ -111,6 +116,7 @@ public class FileWatcherExIntegrationTest : IDisposable
         Assert.Null(ev.OldFullPath);
     }
 
+    
     [Fact]
     public void Create_Rename_And_Remove_Single_File_Via_WSL2()
     {
