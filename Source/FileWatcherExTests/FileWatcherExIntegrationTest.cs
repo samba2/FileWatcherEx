@@ -301,7 +301,7 @@ public class FileWatcherExIntegrationTest : IDisposable
 
     // TODO This scenario tries to test the code paths checking for a "reparse point"
     // which is a symbolic link in NTFS: https://learn.microsoft.com/en-us/windows/win32/fileio/reparse-points
-    // Currently, the test setup does not support this. Namely, calls to File.GetAttributes(...) and
+    // Currently, the test setup does not support this. Namely, calls to new DirectoryInfo(path).GetDirectories() and
     // File.GetAttributes(...) would need to be wrapped and passed in e.g. as a Func
     [Fact (Skip = "test setup needs to be extended")]
     public void CreateFileInsideSymbolicLinkDirectory()
