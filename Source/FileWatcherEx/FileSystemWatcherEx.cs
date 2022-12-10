@@ -79,8 +79,6 @@ public class FileSystemWatcherEx : IDisposable
 
     #endregion
 
-
-
     #region Public Events
 
     /// <summary>
@@ -276,6 +274,16 @@ public class FileSystemWatcherEx : IDisposable
 
         // Start watching
         _fsw.EnableRaisingEvents = true;
+    }
+
+    internal void StartForTesting(
+        Func<string, FileAttributes> getFileAttributesFunc, 
+        Func<string, DirectoryInfo[]> getDirectoryInfosFunc)
+    {
+        Start();
+        if (_watcher is null) return;
+        _watcher.GetFileAttributesFunc = getFileAttributesFunc;
+        _watcher.GetDirectoryInfosFunc = getDirectoryInfosFunc;
     }
 
 

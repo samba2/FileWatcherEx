@@ -36,6 +36,7 @@ internal class FileWatcher : IDisposable
     public IFileSystemWatcherWrapper Create(string path, Action<FileChangedEvent> onEvent, Action<ErrorEventArgs> onError, IFileSystemWatcherWrapper? watcher = null)
     {
         _watchPath = path;
+        _eventCallback = onEvent;        
         _onError = onError;
 
         watcher ??= new FileSystemWatcherWrapper();
