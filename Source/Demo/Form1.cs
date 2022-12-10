@@ -25,7 +25,8 @@ namespace Demo
             _fw.OnError += FW_OnError;
 
             _fw.SynchronizingObject = this;
-
+            _fw.IncludeSubdirectories = true;
+            
             _fw.Start();
 
             btnStart.Enabled = false;

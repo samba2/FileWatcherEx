@@ -58,6 +58,7 @@ internal class FileWatcher : IDisposable
 
         //changing this to a higher value can lead into issues when watching UNC drives
         watcher.InternalBufferSize = 32768;
+        // root watcher
         _fwDictionary.Add(path, watcher);
 
         // this handles sub directories. Probably needs cleanup
