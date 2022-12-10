@@ -4,14 +4,26 @@
 
 namespace FileWatcherEx;
 
-
 internal class FileWatcher : IDisposable
 {
     private string _watchPath = string.Empty;
     private Action<FileChangedEvent>? _eventCallback = null;
     private readonly Dictionary<string, IFileSystemWatcherWrapper> _fwDictionary = new();
     private Action<ErrorEventArgs>? _onError = null;
+    private Func<string, FileAttributes>? _getFileAttributesFunc;
+    private Func<string, DirectoryInfo[]>? _getDirectoryInfosFunc;
 
+    internal Func<string, FileAttributes> GetFileAttributesFunc
+    {
+        get => _getFileAttributesFunc ?? (p => File.GetAttributes(p));
+        set => _getFileAttributesFunc = value;
+    }
+
+    internal Func<string, DirectoryInfo[]> GetDirectoryInfosFunc
+    {
+        get => _getDirectoryInfosFunc ?? (p => new DirectoryInfo(p).GetDirectories());
+        set => _getDirectoryInfosFunc = value;
+    }
 
     /// <summary>
     /// Create new instance of FileSystemWatcherWrapper
@@ -24,7 +36,6 @@ internal class FileWatcher : IDisposable
     public IFileSystemWatcherWrapper Create(string path, Action<FileChangedEvent> onEvent, Action<ErrorEventArgs> onError, IFileSystemWatcherWrapper? watcher = null)
     {
         _watchPath = path;
-        _eventCallback = onEvent;
         _onError = onError;
 
         watcher ??= new FileSystemWatcherWrapper();
@@ -49,9 +60,9 @@ internal class FileWatcher : IDisposable
         _fwDictionary.Add(path, watcher);
 
         // this handles sub directories. Probably needs cleanup
-        foreach (var dirInfo in new DirectoryInfo(path).GetDirectories())
+        foreach (var dirInfo in GetDirectoryInfosFunc(path))
         {
-            var attrs = File.GetAttributes(dirInfo.FullName);
+            var attrs = GetFileAttributesFunc(dirInfo.FullName);
 
             // TODO: consider skipping hidden/system folders? 
             // See IG Issue #405 comment below
@@ -120,18 +131,21 @@ internal class FileWatcher : IDisposable
             fileSystemWatcherRoot.Created += new(MakeWatcher_Created);
             fileSystemWatcherRoot.Deleted += new(MakeWatcher_Deleted);
 
-            fileSystemWatcherRoot.Changed += new((object _, FileSystemEventArgs e) => ProcessEvent(e, ChangeType.CHANGED));
-            fileSystemWatcherRoot.Created += new((object _, FileSystemEventArgs e) => ProcessEvent(e, ChangeType.CREATED));
-            fileSystemWatcherRoot.Deleted += new((object _, FileSystemEventArgs e) => ProcessEvent(e, ChangeType.DELETED));
+            fileSystemWatcherRoot.Changed +=
+                new((object _, FileSystemEventArgs e) => ProcessEvent(e, ChangeType.CHANGED));
+            fileSystemWatcherRoot.Created +=
+                new((object _, FileSystemEventArgs e) => ProcessEvent(e, ChangeType.CREATED));
+            fileSystemWatcherRoot.Deleted +=
+                new((object _, FileSystemEventArgs e) => ProcessEvent(e, ChangeType.DELETED));
             fileSystemWatcherRoot.Renamed += new((object _, RenamedEventArgs e) => ProcessEvent(e));
             fileSystemWatcherRoot.Error += new((object _, ErrorEventArgs e) => _onError?.Invoke(e));
 
             _fwDictionary.Add(path, fileSystemWatcherRoot);
         }
 
-        foreach (var item in new DirectoryInfo(path).GetDirectories())
+        foreach (var item in GetDirectoryInfosFunc(path))
         {
-            var attrs = File.GetAttributes(item.FullName);
+            var attrs = GetFileAttributesFunc(item.FullName);
 
             // If is a directory and symbolic link
             if (attrs.HasFlag(FileAttributes.Directory)
@@ -169,7 +183,7 @@ internal class FileWatcher : IDisposable
     {
         try
         {
-            var attrs = File.GetAttributes(e.FullPath);
+            var attrs = GetFileAttributesFunc(e.FullPath);
             if (attrs.HasFlag(FileAttributes.Directory)
                 && attrs.HasFlag(FileAttributes.ReparsePoint))
             {

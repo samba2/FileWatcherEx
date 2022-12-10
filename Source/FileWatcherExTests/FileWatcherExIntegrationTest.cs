@@ -4,6 +4,8 @@ using Xunit;
 
 namespace FileWatcherExTests;
 
+// TODO subdirectory tests
+
 /// <summary>
 /// Integration/ Golden master test for FileWatcherEx
 /// Considers C:\temp\fwtest to be the test directory
