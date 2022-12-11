@@ -181,7 +181,7 @@ internal class FileWatcher : IDisposable
     }
 
 
-    private void MakeWatcher_Created(object sender, FileSystemEventArgs e)
+    internal void MakeWatcher_Created(object sender, FileSystemEventArgs e)
     {
         try
         {
@@ -214,7 +214,7 @@ internal class FileWatcher : IDisposable
     }
 
 
-    private void MakeWatcher_Deleted(object sender, FileSystemEventArgs e)
+    internal void MakeWatcher_Deleted(object sender, FileSystemEventArgs e)
     {
         // If object removed, then I will dispose and remove them from dictionary
         if (_fwDictionary.ContainsKey(e.FullPath))

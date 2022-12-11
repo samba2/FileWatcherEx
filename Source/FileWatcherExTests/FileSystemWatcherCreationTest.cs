@@ -38,8 +38,11 @@ public class FileSystemWatcherCreationTest
     // file watchers are registered for the root dir and the symlinks
     // for the sub-directories, no extra file watchers are created
     // since the normal file watcher already emits events for subdirs
+    //
+    // this handles the initial setup after start.
+    // for registering sym-link watchers during runtime, MakeWatcher_Created is used.
     [Fact]
-    public void Root_And_Subdir_Watcher_Are_Created()
+    public void FileWatchers_For_SymLink_Dirs_Are_Created_On_Startup()
     {
         using var dir = new TempDir();
         
@@ -68,6 +71,62 @@ public class FileSystemWatcherCreationTest
         AssertContainsWatcherFor(dir.FullPath);
         AssertContainsWatcherFor(symlinkPath1);
         AssertContainsWatcherFor(symlinkPath2);
+    }
+    
+    [Fact]
+    public void FileWatchers_For_SymLink_Dirs_Are_Created_During_Runtime()
+    {
+        using var dir = new TempDir();
+        _uut.Create(
+            dir.FullPath, 
+            e => {}, 
+            e => {},
+            WatcherFactoryWithMemory);
+        
+        // create subdir
+        var subdirPath = Path.Combine(dir.FullPath, "subdir");
+        Directory.CreateDirectory(subdirPath);
+        
+        // simulate file watcher trigger
+        _uut.MakeWatcher_Created(null, 
+            new FileSystemEventArgs(WatcherChangeTypes.Created, dir.FullPath, "subdir"));
+
+        // subdir is ignored
+        Assert.Single(_uut.FwDictionary);
+        AssertContainsWatcherFor(dir.FullPath);
+
+        // create symlink
+        var symlinkPath = Path.Combine(dir.FullPath, "sym");
+        Directory.CreateSymbolicLink(symlinkPath, subdirPath);
+
+        // simulate file watcher trigger
+        _uut.MakeWatcher_Created(null, 
+            new FileSystemEventArgs(WatcherChangeTypes.Created, dir.FullPath, "sym"));
+
+        // symlink dir is registered
+        Assert.Equal(2, _uut.FwDictionary.Count);
+        AssertContainsWatcherFor(dir.FullPath);
+        AssertContainsWatcherFor(symlinkPath);
+
+        //  remove the symlink again
+        Directory.Delete(symlinkPath);
+        
+        // simulate file watcher trigger
+        _uut.MakeWatcher_Deleted(null, 
+            new FileSystemEventArgs(WatcherChangeTypes.Deleted, dir.FullPath, "sym"));
+        
+        // sym-link file watcher is removed
+        Assert.Single(_uut.FwDictionary);
+        AssertContainsWatcherFor(dir.FullPath);
+        
+        _uut.Dispose();
+    }
+
+    [Fact]
+    public void MakeWatcher_Create_Exceptions_Are_Silently_Ignored()
+    {
+        _uut.MakeWatcher_Created(null, 
+            new FileSystemEventArgs(WatcherChangeTypes.Created, "/not/existing", "foo"));
     }
     
     private void AssertContainsWatcherFor(string path)
