@@ -12,6 +12,7 @@ internal class FileWatcher : IDisposable
     private Action<ErrorEventArgs>? _onError = null;
     private Func<string, FileAttributes>? _getFileAttributesFunc;
     private Func<string, DirectoryInfo[]>? _getDirectoryInfosFunc;
+    private Func<IFileSystemWatcherWrapper> _watcherFactory;
 
     internal Func<string, FileAttributes> GetFileAttributesFunc
     {
@@ -31,15 +32,16 @@ internal class FileWatcher : IDisposable
     /// <param name="path">Full folder path to watcher</param>
     /// <param name="onEvent">onEvent callback</param>
     /// <param name="onError">onError callback</param>
-    /// <param name="watcher"></param>
+    /// <param name="watcherFactory">how to create a FileSystemWatcher</param>
     /// <returns></returns>
-    public IFileSystemWatcherWrapper Create(string path, Action<FileChangedEvent> onEvent, Action<ErrorEventArgs> onError, IFileSystemWatcherWrapper? watcher = null)
+    public IFileSystemWatcherWrapper Create(string path, Action<FileChangedEvent> onEvent, Action<ErrorEventArgs> onError, Func<IFileSystemWatcherWrapper> watcherFactory)
     {
+        _watcherFactory = watcherFactory;
         _watchPath = path;
         _eventCallback = onEvent;        
         _onError = onError;
 
-        watcher ??= new FileSystemWatcherWrapper();
+        var watcher = watcherFactory();
         watcher.Path = _watchPath;
         watcher.IncludeSubdirectories = true;
         watcher.NotifyFilter = NotifyFilters.LastWrite

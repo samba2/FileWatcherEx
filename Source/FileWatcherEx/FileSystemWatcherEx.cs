@@ -10,7 +10,8 @@ namespace FileWatcherEx;
 /// </summary>
 public class FileSystemWatcherEx : IDisposable
 {
-    
+    private readonly Func<IFileSystemWatcherWrapper>? _watcherFactory;
+
     #region Private Properties
 
     private Thread? _thread;
@@ -19,13 +20,19 @@ public class FileSystemWatcherEx : IDisposable
 
     private FileWatcher? _watcher;
     private IFileSystemWatcherWrapper? _fsw;
-    private readonly IFileSystemWatcherWrapper? _injectedWatcherWrapper;
+    private Func<IFileSystemWatcherWrapper>? _fswFactory;
 
     // Define the cancellation token.
     private CancellationTokenSource? _cancelSource;
 
+    // how a file watcher is injected
+    internal Func<IFileSystemWatcherWrapper> FileSystemWatcherFactory
+    {
+        get => _fswFactory ?? (() => new FileSystemWatcherWrapper());
+        set => _fswFactory = value;
+    }
+    
     #endregion
-
 
 
     #region Public Properties
@@ -127,11 +134,9 @@ public class FileSystemWatcherEx : IDisposable
     /// Initialize new instance of <see cref="FileSystemWatcherEx"/>
     /// </summary>
     /// <param name="folderPath"></param>
-    /// <param name="watcherWrapper">optional watcher wrapper, used to inject fake implementation</param>
-    public FileSystemWatcherEx(string folderPath = "", IFileSystemWatcherWrapper? watcherWrapper = null)
+    public FileSystemWatcherEx(string folderPath = "")
     {
         FolderPath = folderPath;
-        _injectedWatcherWrapper = watcherWrapper;
     }
 
 
@@ -261,7 +266,7 @@ public class FileSystemWatcherEx : IDisposable
         // Start watcher
         _watcher = new FileWatcher();
 
-        _fsw = _watcher.Create(FolderPath, onEvent, onError, _injectedWatcherWrapper);
+        _fsw = _watcher.Create(FolderPath, onEvent, onError, FileSystemWatcherFactory);
 
         foreach (var filter in Filters)
         {

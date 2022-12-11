@@ -23,7 +23,8 @@ public class FileWatcherExIntegrationTest : IDisposable
         _replayer = new();
         
         const string recordingDir = @"C:\temp\fwtest";
-        _fileWatcher = new FileSystemWatcherEx(recordingDir, _replayer);
+        _fileWatcher = new FileSystemWatcherEx(recordingDir);
+        _fileWatcher.FileSystemWatcherFactory = () => _replayer;
         _fileWatcher.IncludeSubdirectories = true;
 
         _fileWatcher.OnCreated += (_, ev) => _events.Enqueue(ev);
