@@ -26,6 +26,8 @@ internal class FileWatcher : IDisposable
         set => _getDirectoryInfosFunc = value;
     }
 
+    internal Dictionary<string, IFileSystemWatcherWrapper> FwDictionary => _fwDictionary;
+
     /// <summary>
     /// Create new instance of FileSystemWatcherWrapper
     /// </summary>
@@ -155,12 +157,10 @@ internal class FileWatcher : IDisposable
             {
                 if (!_fwDictionary.ContainsKey(item.FullName))
                 {
-                    var fswItem = new FileSystemWatcherWrapper
-                    {
-                        Path = item.FullName,
-                        IncludeSubdirectories = true,
-                        EnableRaisingEvents = true,
-                    };
+                    var fswItem = _watcherFactory();
+                    fswItem.Path = item.FullName;
+                    fswItem.IncludeSubdirectories = true;
+                    fswItem.EnableRaisingEvents = true;
 
                     // Bind internal events to manipulate the possible symbolic links
                     fswItem.Created += new(MakeWatcher_Created);
