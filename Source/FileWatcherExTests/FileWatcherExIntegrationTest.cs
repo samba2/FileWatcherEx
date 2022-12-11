@@ -5,11 +5,9 @@ using Xunit;
 
 namespace FileWatcherExTests;
 
-// TODO subdirectory tests
-
 /// <summary>
 /// Integration/ Golden master test for FileWatcherEx
-/// Considers C:\temp\fwtest to be the test directory
+/// Note: the scenarios where recorded in C:\temp\fwtest
 /// </summary>
 public class FileWatcherExIntegrationTest : IDisposable
 {
@@ -151,7 +149,7 @@ public class FileWatcherExIntegrationTest : IDisposable
     
     
     [Fact]
-    public void ManuallyCreateAndRenameFileViaWindowsExplorer()
+    public void Manually_Create_And_Rename_File_Via_Windows_Explorer()
     {
         StartFileWatcherAndReplay(@"scenario\create_and_rename_file_via_explorer.csv");
 
@@ -169,7 +167,7 @@ public class FileWatcherExIntegrationTest : IDisposable
     }
 
     [Fact]
-    public void ManuallyCreateRenameAndDeleteFileViaWindowsExplorer()
+    public void Manually_Create_Rename_And_Delete_File_Via_Windows_Explorer()
     {
         StartFileWatcherAndReplay(@"scenario\create_rename_and_delete_file_via_explorer.csv");
 
@@ -191,7 +189,7 @@ public class FileWatcherExIntegrationTest : IDisposable
     }
 
     [Fact]
-    public void DownloadImageViaEdgeBrowser()
+    public void Download_Image_Via_Edge_Browser()
     {
         StartFileWatcherAndReplay(@"scenario\download_image_via_Edge_browser.csv");
 
@@ -209,7 +207,7 @@ public class FileWatcherExIntegrationTest : IDisposable
 
     // instantly removed file is not in the events list
     [Fact]
-    public void CreateSubDirectoryAddAndRemoveFile()
+    public void Create_Sub_Directory_Add_And_Remove_File()
     {
         StartFileWatcherAndReplay(@"scenario\create_subdirectory_add_and_remove_file.csv");
 
@@ -226,7 +224,7 @@ public class FileWatcherExIntegrationTest : IDisposable
     }
     
     [Fact]
-    public void CreateSubDirectoryAddAndRemoveFileWithSleep()
+    public void Create_Sub_Directory_Add_And_Remove_File_With_Sleep()
     {
         StartFileWatcherAndReplay(@"scenario\create_subdirectory_add_and_remove_file_with_sleep.csv");
 
@@ -297,7 +295,7 @@ public class FileWatcherExIntegrationTest : IDisposable
     
     
     [Fact(Skip = "requires real (Windows) file system")]
-    public void SimpleRealFileSystemTest()
+    public void Simple_Real_File_System_Test()
     {
         ConcurrentQueue<FileChangedEvent> events = new();
         var fw = new FileSystemWatcherEx(@"c:\temp\fwtest\");

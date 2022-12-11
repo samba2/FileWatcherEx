@@ -252,7 +252,7 @@ public class EventProcessorTest
     }
     
     [Fact]
-    public void IsParent()
+    public void Is_Parent()
     {
         Assert.True(EventProcessor.IsParent(@"c:\a\b", @"c:"));
         Assert.True(EventProcessor.IsParent(@"c:\a\b", @"c:\a"));
