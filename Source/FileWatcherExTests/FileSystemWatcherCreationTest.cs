@@ -1,4 +1,5 @@
 ﻿using FileWatcherEx;
+using FileWatcherExTests.Helper;
 using Moq;
 using Xunit;
 using Xunit.Abstractions;
@@ -153,23 +154,6 @@ public class FileSystemWatcherCreationTest
         }
     }
     
-    
-    private class TempDir : IDisposable
-    {
-        public string FullPath { get; }
-
-        public TempDir() 
-        {
-            FullPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
-            Directory.CreateDirectory(FullPath);
-        }
-
-        public void Dispose()
-        {
-            Directory.Delete(FullPath, true);
-        }
-    }
-
     private IFileSystemWatcherWrapper WatcherFactoryWithMemory()
     {
         var mock = new Mock<IFileSystemWatcherWrapper>();

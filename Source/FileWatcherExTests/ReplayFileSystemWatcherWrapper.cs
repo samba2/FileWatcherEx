@@ -21,6 +21,8 @@ internal record EventRecordWithDiff(
 /// </summary>
 public class ReplayFileSystemWatcherWrapper : IFileSystemWatcherWrapper
 {
+    private Collection<string> _filters = new();
+
     public void Replay(string csvFile)
     {
         using var reader = new StreamReader(csvFile);
@@ -72,7 +74,9 @@ public class ReplayFileSystemWatcherWrapper : IFileSystemWatcherWrapper
 
     // unused in replay implementation
     public string Path { get; set; }
-    public Collection<string> Filters { get; }
+
+    public Collection<string> Filters => _filters;
+
     public bool IncludeSubdirectories { get; set; }
     public bool EnableRaisingEvents { get; set; }
     public NotifyFilters NotifyFilter { get; set; }

@@ -1,5 +1,6 @@
 ﻿using System.Collections.Concurrent;
 using FileWatcherEx;
+using FileWatcherExTests.Helper;
 using Xunit;
 
 namespace FileWatcherExTests;
@@ -252,19 +253,48 @@ public class FileWatcherExIntegrationTest : IDisposable
         Assert.Equal(@"", ev4.OldFullPath);
     }
 
-    // TODO This scenario tries to test the code paths checking for a "reparse point"
-    // which is a symbolic link in NTFS: https://learn.microsoft.com/en-us/windows/win32/fileio/reparse-points
-    // Currently, the test setup does not support this. Namely, calls to new DirectoryInfo(path).GetDirectories() and
-    // File.GetAttributes(...) would need to be wrapped and passed in e.g. as a Func
-    [Fact (Skip = "test setup needs to be extended")]
-    public void CreateFileInsideSymbolicLinkDirectory()
+    [Fact]
+    public void Filter_Settings_Are_Delegated()
     {
-        _fileWatcher.Start();
-        _replayer.Replay(@"scenario\create_file_inside_symbolic_link_directory.csv");
-        _fileWatcher.Stop();
-
-        Assert.Equal(6, _events.Count);
+        using var dir = new TempDir();
+        var watcher = new ReplayFileSystemWatcherWrapper();
+        
+        var uut = new FileSystemWatcherEx(dir.FullPath);
+        uut.FileSystemWatcherFactory = () => watcher;
+        uut.Filters.Add("*.foo");
+        uut.Filters.Add("*.bar");
+        
+        uut.Start();
+        Assert.Equal(new List<string>{"*.foo", "*.bar"}, watcher.Filters);
     }
+    
+    [Fact]
+    public void Set_Filter()
+    {
+        using var dir = new TempDir();
+        var watcher = new ReplayFileSystemWatcherWrapper();
+        
+        var uut = new FileSystemWatcherEx(dir.FullPath);
+        uut.FileSystemWatcherFactory = () => watcher;
+        
+        // "all files" by default 
+        Assert.Equal("*", uut.Filter);
+
+        uut.Filters.Add("*.foo");
+        uut.Filters.Add("*.bar");
+
+        // two filter entries
+        Assert.Equal(2, uut.Filters.Count);
+        
+        // if multiple filters, only first is displayed. TODO Why ? 
+        Assert.Equal("*.foo", uut.Filter);
+
+        uut.Filter = "*.baz";
+        Assert.Equal("*.baz", uut.Filter);
+        Assert.Single(uut.Filters);
+    }
+
+    
     
     [Fact(Skip = "requires real (Windows) file system")]
     public void SimpleRealFileSystemTest()
