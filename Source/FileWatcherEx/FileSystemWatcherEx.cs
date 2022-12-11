@@ -10,8 +10,6 @@ namespace FileWatcherEx;
 /// </summary>
 public class FileSystemWatcherEx : IDisposable
 {
-    private readonly Func<IFileSystemWatcherWrapper>? _watcherFactory;
-
     #region Private Properties
 
     private Thread? _thread;
@@ -25,13 +23,14 @@ public class FileSystemWatcherEx : IDisposable
     // Define the cancellation token.
     private CancellationTokenSource? _cancelSource;
 
-    // how a file watcher is injected
+    // allow injection of FileSystemWatcherWrapper
     internal Func<IFileSystemWatcherWrapper> FileSystemWatcherFactory
     {
-        get => _fswFactory ?? (() => new FileSystemWatcherWrapper());
+        // default to production FileSystemWatcherWrapper (which wrapped the native FileSystemWatcher)
+        get { return _fswFactory ?? (() => new FileSystemWatcherWrapper()); }
         set => _fswFactory = value;
     }
-    
+
     #endregion
 
 

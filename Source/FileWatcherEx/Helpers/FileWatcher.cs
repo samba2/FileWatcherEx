@@ -16,13 +16,17 @@ internal class FileWatcher : IDisposable
 
     internal Func<string, FileAttributes> GetFileAttributesFunc
     {
-        get => _getFileAttributesFunc ?? (p => File.GetAttributes(p));
+        get => _getFileAttributesFunc ?? File.GetAttributes;
         set => _getFileAttributesFunc = value;
     }
 
     internal Func<string, DirectoryInfo[]> GetDirectoryInfosFunc
     {
-        get => _getDirectoryInfosFunc ?? (p => new DirectoryInfo(p).GetDirectories());
+        get
+        {
+            DirectoryInfo[] DefaultFunc(string p) => new DirectoryInfo(p).GetDirectories();
+            return _getDirectoryInfosFunc ?? DefaultFunc;
+        }
         set => _getDirectoryInfosFunc = value;
     }
 
@@ -135,12 +139,9 @@ internal class FileWatcher : IDisposable
             fileSystemWatcherRoot.Created += new(MakeWatcher_Created);
             fileSystemWatcherRoot.Deleted += new(MakeWatcher_Deleted);
 
-            fileSystemWatcherRoot.Changed +=
-                new((object _, FileSystemEventArgs e) => ProcessEvent(e, ChangeType.CHANGED));
-            fileSystemWatcherRoot.Created +=
-                new((object _, FileSystemEventArgs e) => ProcessEvent(e, ChangeType.CREATED));
-            fileSystemWatcherRoot.Deleted +=
-                new((object _, FileSystemEventArgs e) => ProcessEvent(e, ChangeType.DELETED));
+            fileSystemWatcherRoot.Changed += new((object _, FileSystemEventArgs e) => ProcessEvent(e, ChangeType.CHANGED));
+            fileSystemWatcherRoot.Created += new((object _, FileSystemEventArgs e) => ProcessEvent(e, ChangeType.CREATED));
+            fileSystemWatcherRoot.Deleted += new((object _, FileSystemEventArgs e) => ProcessEvent(e, ChangeType.DELETED));
             fileSystemWatcherRoot.Renamed += new((object _, RenamedEventArgs e) => ProcessEvent(e));
             fileSystemWatcherRoot.Error += new((object _, ErrorEventArgs e) => _onError?.Invoke(e));
 
