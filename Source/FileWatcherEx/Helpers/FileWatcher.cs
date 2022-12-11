@@ -124,12 +124,10 @@ internal class FileWatcher : IDisposable
     {
         if (!_fwDictionary.ContainsKey(path))
         {
-            var fileSystemWatcherRoot = new FileSystemWatcherWrapper
-            {
-                Path = path,
-                IncludeSubdirectories = true,
-                EnableRaisingEvents = true
-            };
+            var fileSystemWatcherRoot = _watcherFactory();
+            fileSystemWatcherRoot.Path = path;
+            fileSystemWatcherRoot.IncludeSubdirectories = true;
+            fileSystemWatcherRoot.EnableRaisingEvents = true;
 
             // Bind internal events to manipulate the possible symbolic links
             fileSystemWatcherRoot.Created += new(MakeWatcher_Created);
@@ -191,12 +189,10 @@ internal class FileWatcher : IDisposable
             if (attrs.HasFlag(FileAttributes.Directory)
                 && attrs.HasFlag(FileAttributes.ReparsePoint))
             {
-                var watcherCreated = new FileSystemWatcherWrapper
-                {
-                    Path = e.FullPath,
-                    IncludeSubdirectories = true,
-                    EnableRaisingEvents = true
-                };
+                var watcherCreated = _watcherFactory();
+                watcherCreated.Path = e.FullPath;
+                watcherCreated.IncludeSubdirectories = true;
+                watcherCreated.EnableRaisingEvents = true;
 
                 // Bind internal events to manipulate the possible symbolic links
                 watcherCreated.Created += new(MakeWatcher_Created);
