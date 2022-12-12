@@ -1,0 +1,7 @@
+Directory,FileName,EventName,OldFileName,DiffInTicks,DiffInMilliseconds
+C:\temp\fwtest,subdir,created,,0,0
+C:\temp\fwtest\subdir,a.txt,created,,52133,5
+C:\temp\fwtest\subdir,a.txt,changed,,21171,2
+C:\temp\fwtest,subdir,changed,,132289,13
+C:\temp\fwtest\subdir,a.txt,deleted,,226731,23
+C:\temp\fwtest,subdir,changed,,2123902,212

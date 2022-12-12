@@ -10,7 +10,6 @@ namespace FileWatcherEx;
 /// </summary>
 public class FileSystemWatcherEx : IDisposable, IFileSystemWatcherEx
 {
-    
     #region Private Properties
 
     private Thread? _thread;
@@ -18,13 +17,21 @@ public class FileSystemWatcherEx : IDisposable, IFileSystemWatcherEx
     private readonly BlockingCollection<FileChangedEvent> _fileEventQueue = new();
 
     private FileWatcher? _watcher;
-    private FileSystemWatcher? _fsw;
+    private IFileSystemWatcherWrapper? _fsw;
+    private Func<IFileSystemWatcherWrapper>? _fswFactory;
 
     // Define the cancellation token.
     private CancellationTokenSource? _cancelSource;
 
-    #endregion
+    // allow injection of FileSystemWatcherWrapper
+    internal Func<IFileSystemWatcherWrapper> FileSystemWatcherFactory
+    {
+        // default to production FileSystemWatcherWrapper (which wrapped the native FileSystemWatcher)
+        get { return _fswFactory ?? (() => new FileSystemWatcherWrapper()); }
+        set => _fswFactory = value;
+    }
 
+    #endregion
 
 
     #region Public Properties
@@ -78,8 +85,6 @@ public class FileSystemWatcherEx : IDisposable, IFileSystemWatcherEx
 
     #endregion
 
-
-
     #region Public Events
 
     /// <summary>
@@ -122,7 +127,6 @@ public class FileSystemWatcherEx : IDisposable, IFileSystemWatcherEx
     public delegate void DelegateOnError(object? sender, ErrorEventArgs e);
 
     #endregion
-
 
 
     /// <summary>
@@ -261,7 +265,7 @@ public class FileSystemWatcherEx : IDisposable, IFileSystemWatcherEx
         // Start watcher
         _watcher = new FileWatcher();
 
-        _fsw = _watcher.Create(FolderPath, onEvent, onError);
+        _fsw = _watcher.Create(FolderPath, onEvent, onError, FileSystemWatcherFactory);
 
         foreach (var filter in Filters)
         {
@@ -274,6 +278,16 @@ public class FileSystemWatcherEx : IDisposable, IFileSystemWatcherEx
 
         // Start watching
         _fsw.EnableRaisingEvents = true;
+    }
+
+    internal void StartForTesting(
+        Func<string, FileAttributes> getFileAttributesFunc, 
+        Func<string, DirectoryInfo[]> getDirectoryInfosFunc)
+    {
+        Start();
+        if (_watcher is null) return;
+        _watcher.GetFileAttributesFunc = getFileAttributesFunc;
+        _watcher.GetDirectoryInfosFunc = getDirectoryInfosFunc;
     }
 
 

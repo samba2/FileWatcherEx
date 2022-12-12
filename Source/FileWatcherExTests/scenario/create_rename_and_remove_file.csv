@@ -1,0 +1,4 @@
+Directory,FileName,EventName,OldFileName,DiffInTicks,DiffInMilliseconds
+C:\temp\fwtest,a.txt,created,,0,0
+C:\temp\fwtest,b.txt,renamed,a.txt,1046536,105
+C:\temp\fwtest,b.txt,deleted,,4102153,410

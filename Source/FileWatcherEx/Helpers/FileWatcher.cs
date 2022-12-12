@@ -4,36 +4,55 @@
 
 namespace FileWatcherEx;
 
-
 internal class FileWatcher : IDisposable
 {
     private string _watchPath = string.Empty;
     private Action<FileChangedEvent>? _eventCallback = null;
-    private readonly Dictionary<string, FileSystemWatcher> _fwDictionary = new();
+    private readonly Dictionary<string, IFileSystemWatcherWrapper> _fwDictionary = new();
     private Action<ErrorEventArgs>? _onError = null;
+    private Func<string, FileAttributes>? _getFileAttributesFunc;
+    private Func<string, DirectoryInfo[]>? _getDirectoryInfosFunc;
+    private Func<IFileSystemWatcherWrapper> _watcherFactory;
 
+    internal Func<string, FileAttributes> GetFileAttributesFunc
+    {
+        get => _getFileAttributesFunc ?? File.GetAttributes;
+        set => _getFileAttributesFunc = value;
+    }
+
+    internal Func<string, DirectoryInfo[]> GetDirectoryInfosFunc
+    {
+        get
+        {
+            DirectoryInfo[] DefaultFunc(string p) => new DirectoryInfo(p).GetDirectories();
+            return _getDirectoryInfosFunc ?? DefaultFunc;
+        }
+        set => _getDirectoryInfosFunc = value;
+    }
+
+    internal Dictionary<string, IFileSystemWatcherWrapper> FwDictionary => _fwDictionary;
 
     /// <summary>
-    /// Create new instance of FileSystemWatcher
+    /// Create new instance of FileSystemWatcherWrapper
     /// </summary>
     /// <param name="path">Full folder path to watcher</param>
     /// <param name="onEvent">onEvent callback</param>
     /// <param name="onError">onError callback</param>
+    /// <param name="watcherFactory">how to create a FileSystemWatcher</param>
     /// <returns></returns>
-    public FileSystemWatcher Create(string path, Action<FileChangedEvent> onEvent, Action<ErrorEventArgs> onError)
+    public IFileSystemWatcherWrapper Create(string path, Action<FileChangedEvent> onEvent, Action<ErrorEventArgs> onError, Func<IFileSystemWatcherWrapper> watcherFactory)
     {
+        _watcherFactory = watcherFactory;
         _watchPath = path;
-        _eventCallback = onEvent;
+        _eventCallback = onEvent;        
         _onError = onError;
 
-        var watcher = new FileSystemWatcher
-        {
-            Path = _watchPath,
-            IncludeSubdirectories = true,
-            NotifyFilter = NotifyFilters.LastWrite
-                | NotifyFilters.FileName
-                | NotifyFilters.DirectoryName,
-        };
+        var watcher = watcherFactory();
+        watcher.Path = _watchPath;
+        watcher.IncludeSubdirectories = true;
+        watcher.NotifyFilter = NotifyFilters.LastWrite
+                               | NotifyFilters.FileName
+                               | NotifyFilters.DirectoryName;
 
         // Bind internal events to manipulate the possible symbolic links
         watcher.Created += new(MakeWatcher_Created);
@@ -47,11 +66,13 @@ internal class FileWatcher : IDisposable
 
         //changing this to a higher value can lead into issues when watching UNC drives
         watcher.InternalBufferSize = 32768;
+        // root watcher
         _fwDictionary.Add(path, watcher);
 
-        foreach (var dirInfo in new DirectoryInfo(path).GetDirectories())
+        // this handles sub directories. Probably needs cleanup
+        foreach (var dirInfo in GetDirectoryInfosFunc(path))
         {
-            var attrs = File.GetAttributes(dirInfo.FullName);
+            var attrs = GetFileAttributesFunc(dirInfo.FullName);
 
             // TODO: consider skipping hidden/system folders? 
             // See IG Issue #405 comment below
@@ -109,12 +130,10 @@ internal class FileWatcher : IDisposable
     {
         if (!_fwDictionary.ContainsKey(path))
         {
-            var fileSystemWatcherRoot = new FileSystemWatcher
-            {
-                Path = path,
-                IncludeSubdirectories = true,
-                EnableRaisingEvents = true
-            };
+            var fileSystemWatcherRoot = _watcherFactory();
+            fileSystemWatcherRoot.Path = path;
+            fileSystemWatcherRoot.IncludeSubdirectories = true;
+            fileSystemWatcherRoot.EnableRaisingEvents = true;
 
             // Bind internal events to manipulate the possible symbolic links
             fileSystemWatcherRoot.Created += new(MakeWatcher_Created);
@@ -129,9 +148,9 @@ internal class FileWatcher : IDisposable
             _fwDictionary.Add(path, fileSystemWatcherRoot);
         }
 
-        foreach (var item in new DirectoryInfo(path).GetDirectories())
+        foreach (var item in GetDirectoryInfosFunc(path))
         {
-            var attrs = File.GetAttributes(item.FullName);
+            var attrs = GetFileAttributesFunc(item.FullName);
 
             // If is a directory and symbolic link
             if (attrs.HasFlag(FileAttributes.Directory)
@@ -139,12 +158,10 @@ internal class FileWatcher : IDisposable
             {
                 if (!_fwDictionary.ContainsKey(item.FullName))
                 {
-                    var fswItem = new FileSystemWatcher
-                    {
-                        Path = item.FullName,
-                        IncludeSubdirectories = true,
-                        EnableRaisingEvents = true,
-                    };
+                    var fswItem = _watcherFactory();
+                    fswItem.Path = item.FullName;
+                    fswItem.IncludeSubdirectories = true;
+                    fswItem.EnableRaisingEvents = true;
 
                     // Bind internal events to manipulate the possible symbolic links
                     fswItem.Created += new(MakeWatcher_Created);
@@ -165,20 +182,18 @@ internal class FileWatcher : IDisposable
     }
 
 
-    private void MakeWatcher_Created(object sender, FileSystemEventArgs e)
+    internal void MakeWatcher_Created(object sender, FileSystemEventArgs e)
     {
         try
         {
-            var attrs = File.GetAttributes(e.FullPath);
+            var attrs = GetFileAttributesFunc(e.FullPath);
             if (attrs.HasFlag(FileAttributes.Directory)
                 && attrs.HasFlag(FileAttributes.ReparsePoint))
             {
-                var watcherCreated = new FileSystemWatcher
-                {
-                    Path = e.FullPath,
-                    IncludeSubdirectories = true,
-                    EnableRaisingEvents = true
-                };
+                var watcherCreated = _watcherFactory();
+                watcherCreated.Path = e.FullPath;
+                watcherCreated.IncludeSubdirectories = true;
+                watcherCreated.EnableRaisingEvents = true;
 
                 // Bind internal events to manipulate the possible symbolic links
                 watcherCreated.Created += new(MakeWatcher_Created);
@@ -200,7 +215,7 @@ internal class FileWatcher : IDisposable
     }
 
 
-    private void MakeWatcher_Deleted(object sender, FileSystemEventArgs e)
+    internal void MakeWatcher_Deleted(object sender, FileSystemEventArgs e)
     {
         // If object removed, then I will dispose and remove them from dictionary
         if (_fwDictionary.ContainsKey(e.FullPath))

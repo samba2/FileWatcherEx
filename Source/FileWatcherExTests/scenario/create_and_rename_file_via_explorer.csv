@@ -1,0 +1,3 @@
+Directory,FileName,EventName,OldFileName,DiffInTicks,DiffInMilliseconds
+C:\temp\fwtest,New Text Document.txt,created,,0,0
+C:\temp\fwtest,foo.txt,renamed,New Text Document.txt,15017686,1502
