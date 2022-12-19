@@ -4,7 +4,7 @@ using FileWatcherEx.Helpers;
 
 namespace FileWatcherExTests;
 
-public class EventProcessorTest
+public class EventNormalizerTest
 {
     [Fact]
     public void No_Input_Gives_No_Output()
@@ -215,7 +215,7 @@ public class EventProcessorTest
             }
         };
 
-        var filtered = EventProcessor.FilterDeleted(events);
+        var filtered = EventNormalizer.FilterDeleted(events);
         Assert.Equal(events, filtered);
     }
 
@@ -244,7 +244,7 @@ public class EventProcessorTest
             }
         };
 
-        var filtered = EventProcessor.FilterDeleted(events).ToList();
+        var filtered = EventNormalizer.FilterDeleted(events).ToList();
         Assert.Equal(2, filtered.Count);
         Assert.Equal(ChangeType.DELETED, filtered[0].ChangeType);
         Assert.Equal(@"c:\bar", filtered[0].FullPath);
@@ -255,15 +255,15 @@ public class EventProcessorTest
     [Fact]
     public void Is_Parent()
     {
-        Assert.True(EventProcessor.IsParent(@"c:\a\b", @"c:"));
-        Assert.True(EventProcessor.IsParent(@"c:\a\b", @"c:\a"));
+        Assert.True(EventNormalizer.IsParent(@"c:\a\b", @"c:"));
+        Assert.True(EventNormalizer.IsParent(@"c:\a\b", @"c:\a"));
 
         // candidate must not have backslash
-        Assert.False(EventProcessor.IsParent(@"c:\a\b", @"c:\"));
-        Assert.False(EventProcessor.IsParent(@"c:\a\b", @"c:\a\"));
+        Assert.False(EventNormalizer.IsParent(@"c:\a\b", @"c:\"));
+        Assert.False(EventNormalizer.IsParent(@"c:\a\b", @"c:\a\"));
         
-        Assert.False(EventProcessor.IsParent(@"c:\", @"c:\foo"));
-        Assert.False(EventProcessor.IsParent(@"c:\", @"c:\"));
+        Assert.False(EventNormalizer.IsParent(@"c:\", @"c:\foo"));
+        Assert.False(EventNormalizer.IsParent(@"c:\", @"c:\"));
     }
 
     [Fact]
@@ -275,7 +275,7 @@ public class EventProcessorTest
             FullPath = @"c:\foo"
         };
 
-        Assert.True(EventProcessor.IsParent(ev, new List<string>()));
+        Assert.True(EventNormalizer.IsParent(ev, new List<string>()));
     }
     
     [Fact]
@@ -289,7 +289,7 @@ public class EventProcessorTest
             FullPath = @"c:\foo"
         };
         
-        Assert.True(EventProcessor.IsParent(parentDirEvent, deletedFiles));
+        Assert.True(EventNormalizer.IsParent(parentDirEvent, deletedFiles));
 
         
         var subDirEvent = new FileChangedEvent
@@ -298,11 +298,11 @@ public class EventProcessorTest
             FullPath = @"c:\foo\bar"
         };
         
-        Assert.False(EventProcessor.IsParent(subDirEvent, deletedFiles));
+        Assert.False(EventNormalizer.IsParent(subDirEvent, deletedFiles));
     }
     
     private static List<FileChangedEvent> NormalizeEvents(params FileChangedEvent[] events)
     {
-        return EventProcessor.NormalizeEvents(events).ToList();
+        return new EventNormalizer().Normalize(events).ToList();
     }
 }
