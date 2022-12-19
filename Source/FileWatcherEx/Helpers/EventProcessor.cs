@@ -2,6 +2,8 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+using static FileWatcherEx.ChangeType;
+
 namespace FileWatcherEx.Helpers;
 
 internal class EventProcessor
@@ -39,48 +41,48 @@ internal class EventProcessor
         // Normalize duplicates
         foreach (var newEvent in events)
         {
-            mapPathToEvents.TryGetValue(newEvent.FullPath, out var oldEvent); // Try get event from newEvent.FullPath
+            mapPathToEvents.TryGetValue(newEvent.FullPath, out FileChangedEvent? oldEvent); // Try get event from newEvent.FullPath
 
-            if (oldEvent != null && oldEvent.ChangeType == ChangeType.CREATED && newEvent.ChangeType == ChangeType.DELETED)
+            if (oldEvent?.ChangeType == CREATED && newEvent.ChangeType == DELETED)
             { // CREATED + DELETED => remove
                 mapPathToEvents.Remove(oldEvent.FullPath);
                 eventsWithoutDuplicates.Remove(oldEvent);
             }
             else
-            if (oldEvent != null && oldEvent.ChangeType == ChangeType.DELETED && newEvent.ChangeType == ChangeType.CREATED)
+            if (oldEvent?.ChangeType == DELETED && newEvent.ChangeType == CREATED)
             { // DELETED + CREATED => CHANGED
-                oldEvent.ChangeType = ChangeType.CHANGED;
+                oldEvent.ChangeType = CHANGED;
             }
             else
-            if (oldEvent != null && oldEvent.ChangeType == ChangeType.CREATED && newEvent.ChangeType == ChangeType.CHANGED)
+            if (oldEvent?.ChangeType == CREATED && newEvent.ChangeType == CHANGED)
             { // CREATED + CHANGED => CREATED
               // Do nothing
             }
             else
             { // Otherwise
 
-                if (newEvent.ChangeType == ChangeType.RENAMED)
+                if (newEvent.ChangeType == RENAMED)
                 { // If <ANY> + RENAMED
                     do
                     {
                         mapPathToEvents.TryGetValue(newEvent.OldFullPath!, out var renameFromEvent); // Try get event from newEvent.OldFullPath
 
-                        if (renameFromEvent != null && renameFromEvent.ChangeType == ChangeType.CREATED)
+                        if (renameFromEvent != null && renameFromEvent.ChangeType == CREATED)
                         { // If rename from CREATED file
                           // Remove data about the CREATED file 
                             mapPathToEvents.Remove(renameFromEvent.FullPath);
                             eventsWithoutDuplicates.Remove(renameFromEvent);
                             // Handle new event as CREATED
-                            newEvent.ChangeType = ChangeType.CREATED;
+                            newEvent.ChangeType = CREATED;
                             newEvent.OldFullPath = null;
 
-                            if (oldEvent != null && oldEvent.ChangeType == ChangeType.DELETED)
+                            if (oldEvent?.ChangeType == DELETED)
                             { // DELETED + CREATED => CHANGED
-                                newEvent.ChangeType = ChangeType.CHANGED;
+                                newEvent.ChangeType = CHANGED;
                             }
                         }
                         else
-                        if (renameFromEvent != null && renameFromEvent.ChangeType == ChangeType.RENAMED)
+                        if (renameFromEvent != null && renameFromEvent.ChangeType == RENAMED)
                         { // If rename from RENAMED file
                           // Remove data about the RENAMED file 
                             mapPathToEvents.Remove(renameFromEvent.FullPath);
@@ -138,7 +140,7 @@ internal class EventProcessor
 
     internal static bool IsParent(FileChangedEvent e, List<string> deletedPaths)
     {
-        if (e.ChangeType == ChangeType.DELETED)
+        if (e.ChangeType == DELETED)
         {
             if (deletedPaths.Any(d => IsParent(e.FullPath, d)))
             {
