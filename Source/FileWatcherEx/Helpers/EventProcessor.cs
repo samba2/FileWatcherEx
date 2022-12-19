@@ -67,60 +67,48 @@ internal class EventProcessor
                 if (newEvent.ChangeType == RENAMED)
                 {
                     // If <ANY> + RENAMED
-                    do
+                    mapPathToEvents.TryGetValue(newEvent.OldFullPath!,
+                        out var renameFromEvent); // Try get event from newEvent.OldFullPath
+
+                    if (renameFromEvent?.ChangeType == CREATED)
                     {
-                        mapPathToEvents.TryGetValue(newEvent.OldFullPath!,
-                            out var renameFromEvent); // Try get event from newEvent.OldFullPath
+                        // If rename from CREATED file
+                        // Remove data about the CREATED file 
+                        mapPathToEvents.Remove(renameFromEvent.FullPath);
+                        eventsWithoutDuplicates.Remove(renameFromEvent);
+                        // Handle new event as CREATED
+                        newEvent.ChangeType = CREATED;
+                        newEvent.OldFullPath = null;
 
-                        if (renameFromEvent != null && renameFromEvent.ChangeType == CREATED)
+                        if (oldEvent?.ChangeType == DELETED)
                         {
-                            // If rename from CREATED file
-                            // Remove data about the CREATED file 
-                            mapPathToEvents.Remove(renameFromEvent.FullPath);
-                            eventsWithoutDuplicates.Remove(renameFromEvent);
-                            // Handle new event as CREATED
-                            newEvent.ChangeType = CREATED;
-                            newEvent.OldFullPath = null;
-
-                            if (oldEvent?.ChangeType == DELETED)
-                            {
-                                // DELETED + CREATED => CHANGED
-                                newEvent.ChangeType = CHANGED;
-                            }
+                            // DELETED + CREATED => CHANGED
+                            newEvent.ChangeType = CHANGED;
                         }
-                        else if (renameFromEvent != null && renameFromEvent.ChangeType == RENAMED)
-                        {
-                            // If rename from RENAMED file
-                            // Remove data about the RENAMED file 
-                            mapPathToEvents.Remove(renameFromEvent.FullPath);
-                            eventsWithoutDuplicates.Remove(renameFromEvent);
-                            // Change OldFullPath
-                            newEvent.OldFullPath = renameFromEvent.OldFullPath;
-                            // Check again
-                            continue;
-                        }
-                        else
-                        {
-                            // Otherwise
-                            // Do nothing
-                            //mapPathToEvents.TryGetValue(newEvent.OldFullPath, out oldEvent); // Try get event from newEvent.OldFullPath
-                        }
-                    } while (false);
+                    }
+                    else if (renameFromEvent?.ChangeType == RENAMED)
+                    {
+                        // If rename from RENAMED file
+                        // Remove data about the RENAMED file 
+                        mapPathToEvents.Remove(renameFromEvent.FullPath);
+                        eventsWithoutDuplicates.Remove(renameFromEvent);
+                        // Change OldFullPath
+                        newEvent.OldFullPath = renameFromEvent.OldFullPath;
+                    }
                 }
 
-                if (oldEvent != null)
+                if (oldEvent is null)
+                {
+                    // If old event does not exist, add new event
+                    mapPathToEvents.Add(newEvent.FullPath, newEvent);
+                    eventsWithoutDuplicates.Add(newEvent);
+                }
+                else
                 {
                     // If old event exists
                     // Replace old event data with data from the new event
                     oldEvent.ChangeType = newEvent.ChangeType;
                     oldEvent.OldFullPath = newEvent.OldFullPath;
-                }
-                else
-                {
-                    // If old event is not exist
-                    // Add new event
-                    mapPathToEvents.Add(newEvent.FullPath, newEvent);
-                    eventsWithoutDuplicates.Add(newEvent);
                 }
             }
         }
