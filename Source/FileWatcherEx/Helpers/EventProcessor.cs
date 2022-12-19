@@ -41,35 +41,41 @@ internal class EventProcessor
         // Normalize duplicates
         foreach (var newEvent in events)
         {
-            mapPathToEvents.TryGetValue(newEvent.FullPath, out FileChangedEvent? oldEvent); // Try get event from newEvent.FullPath
+            mapPathToEvents.TryGetValue(newEvent.FullPath,
+                out FileChangedEvent? oldEvent); // Try get event from newEvent.FullPath
 
             if (oldEvent?.ChangeType == CREATED && newEvent.ChangeType == DELETED)
-            { // CREATED + DELETED => remove
+            {
+                // CREATED + DELETED => remove
                 mapPathToEvents.Remove(oldEvent.FullPath);
                 eventsWithoutDuplicates.Remove(oldEvent);
             }
-            else
-            if (oldEvent?.ChangeType == DELETED && newEvent.ChangeType == CREATED)
-            { // DELETED + CREATED => CHANGED
+            else if (oldEvent?.ChangeType == DELETED && newEvent.ChangeType == CREATED)
+            {
+                // DELETED + CREATED => CHANGED
                 oldEvent.ChangeType = CHANGED;
             }
-            else
-            if (oldEvent?.ChangeType == CREATED && newEvent.ChangeType == CHANGED)
-            { // CREATED + CHANGED => CREATED
-              // Do nothing
+            else if (oldEvent?.ChangeType == CREATED && newEvent.ChangeType == CHANGED)
+            {
+                // CREATED + CHANGED => CREATED
+                // Do nothing
             }
             else
-            { // Otherwise
+            {
+                // Otherwise
 
                 if (newEvent.ChangeType == RENAMED)
-                { // If <ANY> + RENAMED
+                {
+                    // If <ANY> + RENAMED
                     do
                     {
-                        mapPathToEvents.TryGetValue(newEvent.OldFullPath!, out var renameFromEvent); // Try get event from newEvent.OldFullPath
+                        mapPathToEvents.TryGetValue(newEvent.OldFullPath!,
+                            out var renameFromEvent); // Try get event from newEvent.OldFullPath
 
                         if (renameFromEvent != null && renameFromEvent.ChangeType == CREATED)
-                        { // If rename from CREATED file
-                          // Remove data about the CREATED file 
+                        {
+                            // If rename from CREATED file
+                            // Remove data about the CREATED file 
                             mapPathToEvents.Remove(renameFromEvent.FullPath);
                             eventsWithoutDuplicates.Remove(renameFromEvent);
                             // Handle new event as CREATED
@@ -77,14 +83,15 @@ internal class EventProcessor
                             newEvent.OldFullPath = null;
 
                             if (oldEvent?.ChangeType == DELETED)
-                            { // DELETED + CREATED => CHANGED
+                            {
+                                // DELETED + CREATED => CHANGED
                                 newEvent.ChangeType = CHANGED;
                             }
                         }
-                        else
-                        if (renameFromEvent != null && renameFromEvent.ChangeType == RENAMED)
-                        { // If rename from RENAMED file
-                          // Remove data about the RENAMED file 
+                        else if (renameFromEvent != null && renameFromEvent.ChangeType == RENAMED)
+                        {
+                            // If rename from RENAMED file
+                            // Remove data about the RENAMED file 
                             mapPathToEvents.Remove(renameFromEvent.FullPath);
                             eventsWithoutDuplicates.Remove(renameFromEvent);
                             // Change OldFullPath
@@ -93,30 +100,33 @@ internal class EventProcessor
                             continue;
                         }
                         else
-                        { // Otherwise
-                          // Do nothing
-                          //mapPathToEvents.TryGetValue(newEvent.OldFullPath, out oldEvent); // Try get event from newEvent.OldFullPath
+                        {
+                            // Otherwise
+                            // Do nothing
+                            //mapPathToEvents.TryGetValue(newEvent.OldFullPath, out oldEvent); // Try get event from newEvent.OldFullPath
                         }
                     } while (false);
                 }
 
                 if (oldEvent != null)
-                { // If old event exists
-                  // Replace old event data with data from the new event
+                {
+                    // If old event exists
+                    // Replace old event data with data from the new event
                     oldEvent.ChangeType = newEvent.ChangeType;
                     oldEvent.OldFullPath = newEvent.OldFullPath;
                 }
                 else
-                { // If old event is not exist
-                  // Add new event
+                {
+                    // If old event is not exist
+                    // Add new event
                     mapPathToEvents.Add(newEvent.FullPath, newEvent);
                     eventsWithoutDuplicates.Add(newEvent);
                 }
             }
         }
-        
 
-        return FilterDeleted(eventsWithoutDuplicates); 
+
+        return FilterDeleted(eventsWithoutDuplicates);
     }
 
     // This algorithm will remove all DELETE events up to the root folder
@@ -159,7 +169,7 @@ internal class EventProcessor
     {
         return p.IndexOf(candidate + '\\', StringComparison.Ordinal) == 0;
     }
-    
+
 
     public EventProcessor(Action<FileChangedEvent> onEvent, Action<string> onLogging)
     {
@@ -183,7 +193,9 @@ internal class EventProcessor
             else if (!_spamWarningLogged && _spamCheckStartTime + EventSpamWarningThreshold < now)
             {
                 _spamWarningLogged = true;
-                _logger(string.Format("Warning: Watcher is busy catching up with {0} file changes in 60 seconds. Latest path is '{1}'", _events.Count, fileEvent.FullPath));
+                _logger(string.Format(
+                    "Warning: Watcher is busy catching up with {0} file changes in 60 seconds. Latest path is '{1}'",
+                    _events.Count, fileEvent.FullPath));
             }
 
             // Add into our queue
@@ -229,7 +241,4 @@ internal class EventProcessor
             }
         }
     }
-
-
 }
-
