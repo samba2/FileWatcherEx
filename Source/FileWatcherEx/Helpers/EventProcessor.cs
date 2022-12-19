@@ -31,53 +31,25 @@ internal class EventProcessor
 
     private long _spamCheckStartTime = 0;
     private bool _spamWarningLogged = false;
-
-
+    
     internal static IEnumerable<FileChangedEvent> NormalizeEvents(FileChangedEvent[] events)
     {
-        var mapPathToEvents = new Dictionary<string, FileChangedEvent>();
-
-        FileChangedEvent? FindEvent(string? path)
-        {
-            mapPathToEvents.TryGetValue(path ?? "", out var oldEvent);
-            return oldEvent;
-        }
-
-        
-        void RemoveEvent(FileChangedEvent ev)
-        {
-            mapPathToEvents.Remove(ev.FullPath);
-        }
-
-        void AddOrUpdate(FileChangedEvent newEvent)
-        {
-            if (mapPathToEvents.TryGetValue(newEvent.FullPath, out var oldEvent))
-            {
-                // update existing
-                oldEvent.ChangeType = newEvent.ChangeType;
-                oldEvent.OldFullPath = newEvent.OldFullPath;
-            }
-            else
-            {
-                // add
-                mapPathToEvents[newEvent.FullPath] = newEvent;
-            }
-        }
+        var eventRepo = new FileEventRepository();
 
         // Normalize duplicates
         foreach (var newEvent in events)
         {
-            var oldEvent = FindEvent(newEvent.FullPath);
+            var oldEvent = eventRepo.Find(newEvent.FullPath);
             // original file event from which we renamed
             var renameFromEvent = newEvent.ChangeType == RENAMED 
-                ? FindEvent(newEvent.OldFullPath) 
+                ? eventRepo.Find(newEvent.OldFullPath) 
                 : null;
 
             switch (newEvent.ChangeType)
             {
                 // CREATED followed by DELETED => remove
                 case DELETED when oldEvent?.ChangeType == CREATED:
-                    RemoveEvent(oldEvent);
+                    eventRepo.Remove(oldEvent);
                     break;
 
                 // DELETED followed by CREATED => CHANGED
@@ -93,7 +65,7 @@ internal class EventProcessor
                 // rename from CREATED file
                 case RENAMED when renameFromEvent?.ChangeType == CREATED:
                     // Remove data about the CREATED file 
-                    RemoveEvent(renameFromEvent);
+                    eventRepo.Remove(renameFromEvent);
                     // Handle new event as CREATED
                     newEvent.ChangeType = CREATED;
                     newEvent.OldFullPath = null;
@@ -104,26 +76,62 @@ internal class EventProcessor
                         newEvent.ChangeType = CHANGED;
                     }
 
-                    AddOrUpdate(newEvent);
+                    eventRepo.AddOrUpdate(newEvent);
                     break;
 
                 case RENAMED when renameFromEvent?.ChangeType == RENAMED:
-                    // Remove data about the RENAMED file 
-                    RemoveEvent(renameFromEvent);
                     newEvent.OldFullPath = renameFromEvent.OldFullPath;
-                    AddOrUpdate(newEvent);
+                    // Remove data about the RENAMED file 
+                    eventRepo.Remove(renameFromEvent);
+                    eventRepo.AddOrUpdate(newEvent);
                     break;
 
                 // TODO why does "LOG" need to be in the filewevent ?
                 case LOG:
 
                 default:
-                    AddOrUpdate(newEvent);
+                    eventRepo.AddOrUpdate(newEvent);
                     break;
             }
         }
 
-        return FilterDeleted(mapPathToEvents.Values.ToList());
+        return FilterDeleted(eventRepo.Events());
+    }
+
+    private class FileEventRepository
+    {
+        private readonly Dictionary<string, FileChangedEvent> _mapPathToEvents = new();
+
+        public void AddOrUpdate(FileChangedEvent newEvent)
+        {
+            if (_mapPathToEvents.TryGetValue(newEvent.FullPath, out var oldEvent))
+            {
+                // update existing
+                oldEvent.ChangeType = newEvent.ChangeType;
+                oldEvent.OldFullPath = newEvent.OldFullPath;
+            }
+            else
+            {
+                // add
+                _mapPathToEvents[newEvent.FullPath] = newEvent;
+            }
+        }
+
+        public void Remove(FileChangedEvent ev)
+        {
+            _mapPathToEvents.Remove(ev.FullPath);
+        }
+
+        public FileChangedEvent? Find(string? path)
+        {
+            _mapPathToEvents.TryGetValue(path ?? "", out var oldEvent);
+            return oldEvent;
+        }
+
+        public List<FileChangedEvent> Events()
+        {
+            return _mapPathToEvents.Values.ToList();
+        }
     }
 
     // This algorithm will remove all DELETE events up to the root folder
