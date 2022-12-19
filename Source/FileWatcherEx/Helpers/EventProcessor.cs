@@ -2,34 +2,33 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-namespace FileWatcherEx;
+namespace FileWatcherEx.Helpers;
 
 internal class EventProcessor
 {
-
     /// <summary>
     /// Aggregate and only emit events when changes have stopped for this duration (in ms)
     /// </summary>
-    private static readonly int EVENT_DELAY = 50;
+    private const int EventDelay = 50;
 
     /// <summary>
     /// Warn after certain time span of event spam (in ticks)
     /// </summary>
-    private static readonly int EVENT_SPAM_WARNING_THRESHOLD = 60 * 1000 * 10000;
+    private const int EventSpamWarningThreshold = 60 * 1000 * 10000;
 
-    private readonly System.Object LOCK = new();
-    private Task? delayTask = null;
+    private readonly object _lock = new();
+    private Task? _delayTask = null;
 
-    private readonly List<FileChangedEvent> events = new();
-    private readonly Action<FileChangedEvent> handleEvent;
+    private readonly List<FileChangedEvent> _events = new();
+    private readonly Action<FileChangedEvent> _handleEvent;
 
-    private readonly Action<string> logger;
+    private readonly Action<string> _logger;
 
-    private long lastEventTime = 0;
-    private long delayStarted = 0;
+    private long _lastEventTime = 0;
+    private long _delayStarted = 0;
 
-    private long spamCheckStartTime = 0;
-    private bool spamWarningLogged = false;
+    private long _spamCheckStartTime = 0;
+    private bool _spamWarningLogged = false;
 
 
     internal static IEnumerable<FileChangedEvent> NormalizeEvents(FileChangedEvent[] events)
@@ -156,77 +155,75 @@ internal class EventProcessor
 
     internal static bool IsParent(string p, string candidate)
     {
-        return p.IndexOf(candidate + '\\') == 0;
+        return p.IndexOf(candidate + '\\', StringComparison.Ordinal) == 0;
     }
-
-
-
+    
 
     public EventProcessor(Action<FileChangedEvent> onEvent, Action<string> onLogging)
     {
-        handleEvent = onEvent;
-        logger = onLogging;
+        _handleEvent = onEvent;
+        _logger = onLogging;
     }
 
 
     public void ProcessEvent(FileChangedEvent fileEvent)
     {
-        lock (LOCK)
+        lock (_lock)
         {
             var now = DateTime.Now.Ticks;
 
             // Check for spam
-            if (events.Count == 0)
+            if (_events.Count == 0)
             {
-                spamWarningLogged = false;
-                spamCheckStartTime = now;
+                _spamWarningLogged = false;
+                _spamCheckStartTime = now;
             }
-            else if (!spamWarningLogged && spamCheckStartTime + EVENT_SPAM_WARNING_THRESHOLD < now)
+            else if (!_spamWarningLogged && _spamCheckStartTime + EventSpamWarningThreshold < now)
             {
-                spamWarningLogged = true;
-                logger(string.Format("Warning: Watcher is busy catching up with {0} file changes in 60 seconds. Latest path is '{1}'", events.Count, fileEvent.FullPath));
+                _spamWarningLogged = true;
+                _logger(string.Format("Warning: Watcher is busy catching up with {0} file changes in 60 seconds. Latest path is '{1}'", _events.Count, fileEvent.FullPath));
             }
 
             // Add into our queue
-            events.Add(fileEvent);
-            lastEventTime = now;
+            _events.Add(fileEvent);
+            _lastEventTime = now;
 
             // Process queue after delay
-            if (delayTask == null)
+            if (_delayTask == null)
             {
                 // Create function to buffer events
-                void func(Task value)
+                void Func(Task value)
                 {
-                    lock (LOCK)
+                    lock (_lock)
                     {
                         // Check if another event has been received in the meantime
-                        if (delayStarted == lastEventTime)
+                        if (_delayStarted == _lastEventTime)
                         {
                             // Normalize and handle
-                            var normalized = NormalizeEvents(events.ToArray());
+                            var normalized = NormalizeEvents(_events.ToArray());
                             foreach (var e in normalized)
                             {
-                                handleEvent(e);
+                                _handleEvent(e);
                             }
 
                             // Reset
-                            events.Clear();
-                            delayTask = null;
+                            _events.Clear();
+                            _delayTask = null;
                         }
 
                         // Otherwise we have received a new event while this task was
                         // delayed and we reschedule it.
                         else
                         {
-                            delayStarted = lastEventTime;
-                            delayTask = Task.Delay(EVENT_DELAY).ContinueWith(func);
+                            _delayStarted = _lastEventTime;
+                            _delayTask = Task.Delay(EventDelay).ContinueWith(Func);
                         }
                     }
                 }
 
                 // Start function after delay
-                delayStarted = lastEventTime;
-                delayTask = Task.Delay(EVENT_DELAY).ContinueWith(func);
+                _delayStarted = _lastEventTime;
+                _delayTask = Task.Delay(EventDelay).ContinueWith(Func);
             }
         }
     }

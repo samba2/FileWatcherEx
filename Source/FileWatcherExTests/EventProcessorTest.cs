@@ -1,5 +1,6 @@
 using Xunit;
 using FileWatcherEx;
+using FileWatcherEx.Helpers;
 
 namespace FileWatcherExTests;
 
