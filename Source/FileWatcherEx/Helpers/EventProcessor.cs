@@ -36,85 +36,94 @@ internal class EventProcessor
     internal static IEnumerable<FileChangedEvent> NormalizeEvents(FileChangedEvent[] events)
     {
         var mapPathToEvents = new Dictionary<string, FileChangedEvent>();
-        var eventsWithoutDuplicates = new List<FileChangedEvent>();
+
+        FileChangedEvent? FindEvent(string? path)
+        {
+            mapPathToEvents.TryGetValue(path ?? "", out var oldEvent);
+            return oldEvent;
+        }
+
+        
+        void RemoveEvent(FileChangedEvent ev)
+        {
+            mapPathToEvents.Remove(ev.FullPath);
+        }
+
+        void AddOrUpdate(FileChangedEvent newEvent)
+        {
+            if (mapPathToEvents.TryGetValue(newEvent.FullPath, out var oldEvent))
+            {
+                // update existing
+                oldEvent.ChangeType = newEvent.ChangeType;
+                oldEvent.OldFullPath = newEvent.OldFullPath;
+            }
+            else
+            {
+                // add
+                mapPathToEvents[newEvent.FullPath] = newEvent;
+            }
+        }
 
         // Normalize duplicates
         foreach (var newEvent in events)
         {
-            mapPathToEvents.TryGetValue(newEvent.FullPath,
-                out FileChangedEvent? oldEvent); // Try get event from newEvent.FullPath
+            var oldEvent = FindEvent(newEvent.FullPath);
+            // original file event from which we renamed
+            var renameFromEvent = newEvent.ChangeType == RENAMED 
+                ? FindEvent(newEvent.OldFullPath) 
+                : null;
 
-            if (oldEvent?.ChangeType == CREATED && newEvent.ChangeType == DELETED)
+            switch (newEvent.ChangeType)
             {
-                // CREATED + DELETED => remove
-                mapPathToEvents.Remove(oldEvent.FullPath);
-                eventsWithoutDuplicates.Remove(oldEvent);
-            }
-            else if (oldEvent?.ChangeType == DELETED && newEvent.ChangeType == CREATED)
-            {
-                // DELETED + CREATED => CHANGED
-                oldEvent.ChangeType = CHANGED;
-            }
-            else if (oldEvent?.ChangeType == CREATED && newEvent.ChangeType == CHANGED)
-            {
-                // CREATED + CHANGED => CREATED
-                // Do nothing
-            }
-            else
-            {
-                // Otherwise
+                // CREATED followed by DELETED => remove
+                case DELETED when oldEvent?.ChangeType == CREATED:
+                    RemoveEvent(oldEvent);
+                    break;
 
-                if (newEvent.ChangeType == RENAMED)
-                {
-                    // If <ANY> + RENAMED
-                    mapPathToEvents.TryGetValue(newEvent.OldFullPath!,
-                        out var renameFromEvent); // Try get event from newEvent.OldFullPath
+                // DELETED followed by CREATED => CHANGED
+                case CREATED when oldEvent?.ChangeType == DELETED:
+                    oldEvent.ChangeType = CHANGED;
+                    break;
 
-                    if (renameFromEvent?.ChangeType == CREATED)
+                // CREATED followed by CHANGED => CREATED
+                case CHANGED when oldEvent?.ChangeType == CREATED:
+                    // Do nothing
+                    break;
+
+                // rename from CREATED file
+                case RENAMED when renameFromEvent?.ChangeType == CREATED:
+                    // Remove data about the CREATED file 
+                    RemoveEvent(renameFromEvent);
+                    // Handle new event as CREATED
+                    newEvent.ChangeType = CREATED;
+                    newEvent.OldFullPath = null;
+
+                    if (oldEvent?.ChangeType == DELETED)
                     {
-                        // If rename from CREATED file
-                        // Remove data about the CREATED file 
-                        mapPathToEvents.Remove(renameFromEvent.FullPath);
-                        eventsWithoutDuplicates.Remove(renameFromEvent);
-                        // Handle new event as CREATED
-                        newEvent.ChangeType = CREATED;
-                        newEvent.OldFullPath = null;
-
-                        if (oldEvent?.ChangeType == DELETED)
-                        {
-                            // DELETED + CREATED => CHANGED
-                            newEvent.ChangeType = CHANGED;
-                        }
+                        // DELETED followed by CREATED => CHANGED
+                        newEvent.ChangeType = CHANGED;
                     }
-                    else if (renameFromEvent?.ChangeType == RENAMED)
-                    {
-                        // If rename from RENAMED file
-                        // Remove data about the RENAMED file 
-                        mapPathToEvents.Remove(renameFromEvent.FullPath);
-                        eventsWithoutDuplicates.Remove(renameFromEvent);
-                        // Change OldFullPath
-                        newEvent.OldFullPath = renameFromEvent.OldFullPath;
-                    }
-                }
 
-                if (oldEvent is null)
-                {
-                    // If old event does not exist, add new event
-                    mapPathToEvents.Add(newEvent.FullPath, newEvent);
-                    eventsWithoutDuplicates.Add(newEvent);
-                }
-                else
-                {
-                    // If old event exists
-                    // Replace old event data with data from the new event
-                    oldEvent.ChangeType = newEvent.ChangeType;
-                    oldEvent.OldFullPath = newEvent.OldFullPath;
-                }
+                    AddOrUpdate(newEvent);
+                    break;
+
+                case RENAMED when renameFromEvent?.ChangeType == RENAMED:
+                    // Remove data about the RENAMED file 
+                    RemoveEvent(renameFromEvent);
+                    newEvent.OldFullPath = renameFromEvent.OldFullPath;
+                    AddOrUpdate(newEvent);
+                    break;
+
+                // TODO why does "LOG" need to be in the filewevent ?
+                case LOG:
+
+                default:
+                    AddOrUpdate(newEvent);
+                    break;
             }
         }
 
-
-        return FilterDeleted(eventsWithoutDuplicates);
+        return FilterDeleted(mapPathToEvents.Values.ToList());
     }
 
     // This algorithm will remove all DELETE events up to the root folder
