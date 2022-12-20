@@ -47,27 +47,7 @@ internal class FileWatcher : IDisposable
         _eventCallback = onEvent;        
         _onError = onError;
 
-        var watcher = watcherFactory();
-        watcher.Path = _watchPath;
-        watcher.IncludeSubdirectories = true;
-        watcher.NotifyFilter = NotifyFilters.LastWrite
-                               | NotifyFilters.FileName
-                               | NotifyFilters.DirectoryName;
-
-        // Bind internal events to manipulate the possible symbolic links
-        watcher.Created += MakeWatcher_Created;
-        watcher.Deleted += MakeWatcher_Deleted;
-
-        watcher.Changed += (_, e) => ProcessEvent(e, ChangeType.CHANGED);
-        watcher.Created += (_, e) => ProcessEvent(e, ChangeType.CREATED);
-        watcher.Deleted += (_, e) => ProcessEvent(e, ChangeType.DELETED);
-        watcher.Renamed += (_, e) => ProcessEvent(e);
-        watcher.Error += (source, e) => onError(e);
-
-        //changing this to a higher value can lead into issues when watching UNC drives
-        watcher.InternalBufferSize = 32768;
-        // root watcher
-        _fwDictionary.Add(path, watcher);
+        var watcher = RegisterFileWatcher(_watchPath, false);
 
         // this handles sub directories. Probably needs cleanup
         foreach (var dirInfo in GetDirectoryInfosFunc(path))
@@ -130,22 +110,7 @@ internal class FileWatcher : IDisposable
     {
         if (!_fwDictionary.ContainsKey(path))
         {
-            var fileSystemWatcherRoot = _watcherFactory();
-            fileSystemWatcherRoot.Path = path;
-            fileSystemWatcherRoot.IncludeSubdirectories = true;
-            fileSystemWatcherRoot.EnableRaisingEvents = true;
-
-            // Bind internal events to manipulate the possible symbolic links
-            fileSystemWatcherRoot.Created += MakeWatcher_Created;
-            fileSystemWatcherRoot.Deleted += MakeWatcher_Deleted;
-
-            fileSystemWatcherRoot.Changed += (_, e) => ProcessEvent(e, ChangeType.CHANGED);
-            fileSystemWatcherRoot.Created += (_, e) => ProcessEvent(e, ChangeType.CREATED);
-            fileSystemWatcherRoot.Deleted += (_, e) => ProcessEvent(e, ChangeType.DELETED);
-            fileSystemWatcherRoot.Renamed += (_, e) => ProcessEvent(e);
-            fileSystemWatcherRoot.Error += (_, e) => _onError?.Invoke(e);
-
-            _fwDictionary.Add(path, fileSystemWatcherRoot);
+            RegisterFileWatcher(path);
         }
 
         foreach (var item in GetDirectoryInfosFunc(path))
@@ -158,22 +123,7 @@ internal class FileWatcher : IDisposable
             {
                 if (!_fwDictionary.ContainsKey(item.FullName))
                 {
-                    var fswItem = _watcherFactory();
-                    fswItem.Path = item.FullName;
-                    fswItem.IncludeSubdirectories = true;
-                    fswItem.EnableRaisingEvents = true;
-
-                    // Bind internal events to manipulate the possible symbolic links
-                    fswItem.Created += MakeWatcher_Created;
-                    fswItem.Deleted += MakeWatcher_Deleted;
-
-                    fswItem.Changed += (_, e) => ProcessEvent(e, ChangeType.CHANGED);
-                    fswItem.Created += (_, e) => ProcessEvent(e, ChangeType.CREATED);
-                    fswItem.Deleted += (_, e) => ProcessEvent(e, ChangeType.DELETED);
-                    fswItem.Renamed += (_, e) => ProcessEvent(e);
-                    fswItem.Error += (_, e) => _onError?.Invoke(e);
-
-                    _fwDictionary.Add(item.FullName, fswItem);
+                    RegisterFileWatcher(item.FullName);
                 }
 
                 MakeWatcher(item.FullName);
@@ -190,22 +140,7 @@ internal class FileWatcher : IDisposable
             if (attrs.HasFlag(FileAttributes.Directory)
                 && attrs.HasFlag(FileAttributes.ReparsePoint))
             {
-                var watcherCreated = _watcherFactory();
-                watcherCreated.Path = e.FullPath;
-                watcherCreated.IncludeSubdirectories = true;
-                watcherCreated.EnableRaisingEvents = true;
-
-                // Bind internal events to manipulate the possible symbolic links
-                watcherCreated.Created += MakeWatcher_Created;
-                watcherCreated.Deleted += MakeWatcher_Deleted;
-
-                watcherCreated.Changed += (_, e) => ProcessEvent(e, ChangeType.CHANGED);
-                watcherCreated.Created += (_, e) => ProcessEvent(e, ChangeType.CREATED);
-                watcherCreated.Deleted += (_, e) => ProcessEvent(e, ChangeType.DELETED);
-                watcherCreated.Renamed += (_, e) => ProcessEvent(e);
-                watcherCreated.Error += (_, e) => _onError?.Invoke(e);
-
-                _fwDictionary.Add(e.FullPath, watcherCreated);
+                RegisterFileWatcher(e.FullPath);
             }
         }
         catch (Exception ex)
@@ -214,7 +149,36 @@ internal class FileWatcher : IDisposable
         }
     }
 
+    private IFileSystemWatcherWrapper RegisterFileWatcher(string path, bool enableRaisingEvents = true)
+    {
+        var fileWatcher = _watcherFactory();
+        fileWatcher.Path = path;
+        // this is identical to the default value:
+        // https://learn.microsoft.com/en-us/dotnet/api/system.io.filesystemwatcher.notifyfilter?view=net-7.0#property-value
+        fileWatcher.NotifyFilter = NotifyFilters.LastWrite
+                                   | NotifyFilters.FileName
+                                   | NotifyFilters.DirectoryName;
+        
+        fileWatcher.IncludeSubdirectories = true;
+        fileWatcher.EnableRaisingEvents = enableRaisingEvents;
 
+        // Bind internal events to manipulate the possible symbolic links
+        fileWatcher.Created += MakeWatcher_Created;
+        fileWatcher.Deleted += MakeWatcher_Deleted;
+
+        fileWatcher.Changed += (_, e) => ProcessEvent(e, ChangeType.CHANGED);
+        fileWatcher.Created += (_, e) => ProcessEvent(e, ChangeType.CREATED);
+        fileWatcher.Deleted += (_, e) => ProcessEvent(e, ChangeType.DELETED);
+        fileWatcher.Renamed += (_, e) => ProcessEvent(e);
+        fileWatcher.Error += (_, e) => _onError?.Invoke(e);
+        
+        //changing this to a higher value can lead into issues when watching UNC drives
+        fileWatcher.InternalBufferSize = 32768;
+
+        _fwDictionary.Add(path, fileWatcher);
+        return fileWatcher;
+    }
+    
     internal void MakeWatcher_Deleted(object sender, FileSystemEventArgs e)
     {
         // If object removed, then I will dispose and remove them from dictionary
