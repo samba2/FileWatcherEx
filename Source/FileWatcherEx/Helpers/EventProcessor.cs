@@ -12,9 +12,9 @@ internal class EventProcessor
     private const int EventDelay = 50;
 
     /// <summary>
-    /// Warn after certain time span of event spam (in ticks)
+    /// Warn after certain time span of event spam
     /// </summary>
-    private const int EventSpamWarningThreshold = 60 * 1000 * 10000;
+    private readonly TimeSpan _eventSpamWarningThreshold = TimeSpan.FromMinutes(1);
 
     private readonly object _lock = new();
     private Task? _delayTask = null;
@@ -42,20 +42,7 @@ internal class EventProcessor
         lock (_lock)
         {
             var now = DateTime.Now.Ticks;
-
-            // Check for spam
-            if (_events.Count == 0)
-            {
-                _spamWarningLogged = false;
-                _spamCheckStartTime = now;
-            }
-            else if (!_spamWarningLogged && _spamCheckStartTime + EventSpamWarningThreshold < now)
-            {
-                _spamWarningLogged = true;
-                _logger(string.Format(
-                    "Warning: Watcher is busy catching up with {0} file changes in 60 seconds. Latest path is '{1}'",
-                    _events.Count, fileEvent.FullPath));
-            }
+            CheckForSpam(fileEvent, now);
 
             // Add into our queue
             _events.Add(fileEvent);
@@ -98,6 +85,21 @@ internal class EventProcessor
                 _delayStarted = _lastEventTime;
                 _delayTask = Task.Delay(EventDelay).ContinueWith(Func);
             }
+        }
+    }
+
+    private void CheckForSpam(FileChangedEvent fileEvent, long now)
+    {
+        if (_events.Count == 0)
+        {
+            _spamWarningLogged = false;
+            _spamCheckStartTime = now;
+        }
+        else if (! _spamWarningLogged && _spamCheckStartTime + _eventSpamWarningThreshold.Ticks < now)
+        {
+            _spamWarningLogged = true;
+            _logger($"Warning: Watcher is busy catching up with {_events.Count} file changes " +
+                    $"in {_eventSpamWarningThreshold.TotalSeconds} seconds. Latest path is '{fileEvent.FullPath}'");
         }
     }
 }
