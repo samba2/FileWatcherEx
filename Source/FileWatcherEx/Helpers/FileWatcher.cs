@@ -55,14 +55,14 @@ internal class FileWatcher : IDisposable
                                | NotifyFilters.DirectoryName;
 
         // Bind internal events to manipulate the possible symbolic links
-        watcher.Created += new(MakeWatcher_Created);
-        watcher.Deleted += new(MakeWatcher_Deleted);
+        watcher.Created += MakeWatcher_Created;
+        watcher.Deleted += MakeWatcher_Deleted;
 
-        watcher.Changed += new((object _, FileSystemEventArgs e) => ProcessEvent(e, ChangeType.CHANGED));
-        watcher.Created += new((object _, FileSystemEventArgs e) => ProcessEvent(e, ChangeType.CREATED));
-        watcher.Deleted += new((object _, FileSystemEventArgs e) => ProcessEvent(e, ChangeType.DELETED));
-        watcher.Renamed += new((object _, RenamedEventArgs e) => ProcessEvent(e));
-        watcher.Error += new ErrorEventHandler((object source, ErrorEventArgs e) => onError(e));
+        watcher.Changed += (_, e) => ProcessEvent(e, ChangeType.CHANGED);
+        watcher.Created += (_, e) => ProcessEvent(e, ChangeType.CREATED);
+        watcher.Deleted += (_, e) => ProcessEvent(e, ChangeType.DELETED);
+        watcher.Renamed += (_, e) => ProcessEvent(e);
+        watcher.Error += (source, e) => onError(e);
 
         //changing this to a higher value can lead into issues when watching UNC drives
         watcher.InternalBufferSize = 32768;
@@ -136,14 +136,14 @@ internal class FileWatcher : IDisposable
             fileSystemWatcherRoot.EnableRaisingEvents = true;
 
             // Bind internal events to manipulate the possible symbolic links
-            fileSystemWatcherRoot.Created += new(MakeWatcher_Created);
-            fileSystemWatcherRoot.Deleted += new(MakeWatcher_Deleted);
+            fileSystemWatcherRoot.Created += MakeWatcher_Created;
+            fileSystemWatcherRoot.Deleted += MakeWatcher_Deleted;
 
-            fileSystemWatcherRoot.Changed += new((object _, FileSystemEventArgs e) => ProcessEvent(e, ChangeType.CHANGED));
-            fileSystemWatcherRoot.Created += new((object _, FileSystemEventArgs e) => ProcessEvent(e, ChangeType.CREATED));
-            fileSystemWatcherRoot.Deleted += new((object _, FileSystemEventArgs e) => ProcessEvent(e, ChangeType.DELETED));
-            fileSystemWatcherRoot.Renamed += new((object _, RenamedEventArgs e) => ProcessEvent(e));
-            fileSystemWatcherRoot.Error += new((object _, ErrorEventArgs e) => _onError?.Invoke(e));
+            fileSystemWatcherRoot.Changed += (_, e) => ProcessEvent(e, ChangeType.CHANGED);
+            fileSystemWatcherRoot.Created += (_, e) => ProcessEvent(e, ChangeType.CREATED);
+            fileSystemWatcherRoot.Deleted += (_, e) => ProcessEvent(e, ChangeType.DELETED);
+            fileSystemWatcherRoot.Renamed += (_, e) => ProcessEvent(e);
+            fileSystemWatcherRoot.Error += (_, e) => _onError?.Invoke(e);
 
             _fwDictionary.Add(path, fileSystemWatcherRoot);
         }
@@ -164,14 +164,14 @@ internal class FileWatcher : IDisposable
                     fswItem.EnableRaisingEvents = true;
 
                     // Bind internal events to manipulate the possible symbolic links
-                    fswItem.Created += new(MakeWatcher_Created);
-                    fswItem.Deleted += new(MakeWatcher_Deleted);
+                    fswItem.Created += MakeWatcher_Created;
+                    fswItem.Deleted += MakeWatcher_Deleted;
 
-                    fswItem.Changed += new((object _, FileSystemEventArgs e) => ProcessEvent(e, ChangeType.CHANGED));
-                    fswItem.Created += new((object _, FileSystemEventArgs e) => ProcessEvent(e, ChangeType.CREATED));
-                    fswItem.Deleted += new((object _, FileSystemEventArgs e) => ProcessEvent(e, ChangeType.DELETED));
-                    fswItem.Renamed += new((object _, RenamedEventArgs e) => ProcessEvent(e));
-                    fswItem.Error += new((object _, ErrorEventArgs e) => _onError?.Invoke(e));
+                    fswItem.Changed += (_, e) => ProcessEvent(e, ChangeType.CHANGED);
+                    fswItem.Created += (_, e) => ProcessEvent(e, ChangeType.CREATED);
+                    fswItem.Deleted += (_, e) => ProcessEvent(e, ChangeType.DELETED);
+                    fswItem.Renamed += (_, e) => ProcessEvent(e);
+                    fswItem.Error += (_, e) => _onError?.Invoke(e);
 
                     _fwDictionary.Add(item.FullName, fswItem);
                 }
@@ -196,14 +196,14 @@ internal class FileWatcher : IDisposable
                 watcherCreated.EnableRaisingEvents = true;
 
                 // Bind internal events to manipulate the possible symbolic links
-                watcherCreated.Created += new(MakeWatcher_Created);
-                watcherCreated.Deleted += new(MakeWatcher_Deleted);
+                watcherCreated.Created += MakeWatcher_Created;
+                watcherCreated.Deleted += MakeWatcher_Deleted;
 
-                watcherCreated.Changed += new((object _, FileSystemEventArgs e) => ProcessEvent(e, ChangeType.CHANGED));
-                watcherCreated.Created += new((object _, FileSystemEventArgs e) => ProcessEvent(e, ChangeType.CREATED));
-                watcherCreated.Deleted += new((object _, FileSystemEventArgs e) => ProcessEvent(e, ChangeType.DELETED));
-                watcherCreated.Renamed += new((object _, RenamedEventArgs e) => ProcessEvent(e));
-                watcherCreated.Error += new((object _, ErrorEventArgs e) => _onError?.Invoke(e));
+                watcherCreated.Changed += (_, e) => ProcessEvent(e, ChangeType.CHANGED);
+                watcherCreated.Created += (_, e) => ProcessEvent(e, ChangeType.CREATED);
+                watcherCreated.Deleted += (_, e) => ProcessEvent(e, ChangeType.DELETED);
+                watcherCreated.Renamed += (_, e) => ProcessEvent(e);
+                watcherCreated.Error += (_, e) => _onError?.Invoke(e);
 
                 _fwDictionary.Add(e.FullPath, watcherCreated);
             }
