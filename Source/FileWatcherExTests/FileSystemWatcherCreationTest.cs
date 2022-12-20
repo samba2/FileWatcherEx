@@ -1,4 +1,5 @@
 ﻿using FileWatcherEx;
+using FileWatcherEx.Helpers;
 using FileWatcherExTests.Helper;
 using Moq;
 using Xunit;

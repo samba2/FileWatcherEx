@@ -1,6 +1,7 @@
 ﻿
 using System.Collections.Concurrent;
 using System.ComponentModel;
+using FileWatcherEx.Helpers;
 
 namespace FileWatcherEx;
 

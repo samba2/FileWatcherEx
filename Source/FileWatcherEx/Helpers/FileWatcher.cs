@@ -2,7 +2,7 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-namespace FileWatcherEx;
+namespace FileWatcherEx.Helpers;
 
 internal class FileWatcher : IDisposable
 {
