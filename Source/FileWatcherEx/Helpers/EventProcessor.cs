@@ -42,7 +42,7 @@ internal class EventProcessor
         lock (_lock)
         {
             var now = DateTime.Now.Ticks;
-            CheckForSpam(fileEvent, now);
+            WarnForSpam(fileEvent, now);
 
             // Add into our queue
             _events.Add(fileEvent);
@@ -51,44 +51,43 @@ internal class EventProcessor
             // Process queue after delay
             if (_delayTask == null)
             {
-                // Create function to buffer events
-                void Func(Task value)
-                {
-                    lock (_lock)
-                    {
-                        // Check if another event has been received in the meantime
-                        if (_delayStarted == _lastEventTime)
-                        {
-                            // Normalize and handle
-                            var normalized = new EventNormalizer().Normalize(_events.ToArray());
-                            foreach (var e in normalized)
-                            {
-                                _handleEvent(e);
-                            }
-
-                            // Reset
-                            _events.Clear();
-                            _delayTask = null;
-                        }
-
-                        // Otherwise we have received a new event while this task was
-                        // delayed and we reschedule it.
-                        else
-                        {
-                            _delayStarted = _lastEventTime;
-                            _delayTask = Task.Delay(EventDelay).ContinueWith(Func);
-                        }
-                    }
-                }
-
                 // Start function after delay
                 _delayStarted = _lastEventTime;
-                _delayTask = Task.Delay(EventDelay).ContinueWith(Func);
+                _delayTask = Task.Delay(EventDelay).ContinueWith(HandleEventsFunc);
             }
         }
     }
 
-    private void CheckForSpam(FileChangedEvent fileEvent, long now)
+    private void HandleEventsFunc(Task _)
+    {
+        lock (_lock)
+        {
+            // Check if another event has been received in the meantime
+            if (_delayStarted == _lastEventTime)
+            {
+                // Normalize and handle
+                var normalized = new EventNormalizer().Normalize(_events.ToArray());
+                foreach (var ev in normalized)
+                {
+                    _handleEvent(ev);
+                }
+
+                // Reset
+                _events.Clear();
+                _delayTask = null;
+            }
+
+            // Otherwise we have received a new event while this task was
+            // delayed and we reschedule it.
+            else
+            {
+                _delayStarted = _lastEventTime;
+                _delayTask = Task.Delay(EventDelay).ContinueWith(HandleEventsFunc);
+            }
+        }
+    }
+
+    private void WarnForSpam(FileChangedEvent fileEvent, long now)
     {
         if (_events.Count == 0)
         {
