@@ -47,18 +47,14 @@ internal class FileWatcher : IDisposable
         _eventCallback = onEvent;        
         _onError = onError;
 
-        var watcher = RegisterFileWatcher(_watchPath, false);
+        var watcher = RegisterFileWatcher(_watchPath, enableRaisingEvents: false);
 
-        // this handles sub directories. Probably needs cleanup
         foreach (var dirInfo in GetDirectoryInfosFunc(path))
         {
-            var attrs = GetFileAttributesFunc(dirInfo.FullName);
-
             // TODO: consider skipping hidden/system folders? 
             // See IG Issue #405 comment below
-            // https://github.com/d2phap/ImageGlass/issues/405
-            if (attrs.HasFlag(FileAttributes.Directory)
-                && attrs.HasFlag(FileAttributes.ReparsePoint))
+
+            if (IsSymbolicLinkDirectory(dirInfo.FullName))
             {
                 try
                 {
@@ -115,11 +111,7 @@ internal class FileWatcher : IDisposable
 
         foreach (var item in GetDirectoryInfosFunc(path))
         {
-            var attrs = GetFileAttributesFunc(item.FullName);
-
-            // If is a directory and symbolic link
-            if (attrs.HasFlag(FileAttributes.Directory)
-                && attrs.HasFlag(FileAttributes.ReparsePoint))
+            if (IsSymbolicLinkDirectory(item.FullName))
             {
                 if (!_fwDictionary.ContainsKey(item.FullName))
                 {
@@ -136,9 +128,7 @@ internal class FileWatcher : IDisposable
     {
         try
         {
-            var attrs = GetFileAttributesFunc(e.FullPath);
-            if (attrs.HasFlag(FileAttributes.Directory)
-                && attrs.HasFlag(FileAttributes.ReparsePoint))
+            if (IsSymbolicLinkDirectory(e.FullPath))
             {
                 RegisterFileWatcher(e.FullPath);
             }
@@ -177,6 +167,13 @@ internal class FileWatcher : IDisposable
 
         _fwDictionary.Add(path, fileWatcher);
         return fileWatcher;
+    }
+
+    private bool IsSymbolicLinkDirectory(string path)
+    {
+        var attrs = GetFileAttributesFunc(path);
+        return attrs.HasFlag(FileAttributes.Directory)
+               && attrs.HasFlag(FileAttributes.ReparsePoint);
     }
     
     internal void MakeWatcher_Deleted(object sender, FileSystemEventArgs e)
