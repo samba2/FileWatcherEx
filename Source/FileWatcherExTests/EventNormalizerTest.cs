@@ -164,7 +164,31 @@ public class EventNormalizerTest
         Assert.Empty(events);
     }
 
+    [Fact]
+    public void Created_Event_After_Deleted_Results_Into_Changed()
+    {
+        var events = NormalizeEvents(
+            new FileChangedEvent
+            {
+                ChangeType = ChangeType.DELETED,
+                FullPath = @"c:\foo",
+                OldFullPath = null
+            },
+            new FileChangedEvent
+            {
+                ChangeType = ChangeType.CREATED,
+                FullPath = @"c:\foo",
+                OldFullPath = null
+            }
+        );
 
+        Assert.Single(events);
+        var ev = events.First();
+        Assert.Equal(ChangeType.CHANGED, ev.ChangeType);
+        Assert.Equal(@"c:\foo", ev.FullPath);
+        Assert.Null(ev.OldFullPath);
+    }
+    
     [Fact]
     public void Changed_Event_After_Created_Is_Ignored()
     {
