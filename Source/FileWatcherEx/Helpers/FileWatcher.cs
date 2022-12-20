@@ -6,6 +6,7 @@ namespace FileWatcherEx.Helpers;
 
 internal class FileWatcher : IDisposable
 {
+    // TODO double check properties -> are they all needed ?
     private string _watchPath = string.Empty;
     private Action<FileChangedEvent>? _eventCallback = null;
     private readonly Dictionary<string, IFileSystemWatcherWrapper> _fwDictionary = new();
@@ -48,12 +49,50 @@ internal class FileWatcher : IDisposable
         _onError = onError;
 
         var watcher = RegisterFileWatcher(_watchPath, enableRaisingEvents: false);
+        RegisterFileWatchersForSymbolicLinkDirs(path);
+        return watcher;
+    }
 
+    
+    private IFileSystemWatcherWrapper RegisterFileWatcher(string path, bool enableRaisingEvents = true)
+    {
+        var fileWatcher = _watcherFactory();
+        fileWatcher.Path = path;
+        // this is identical to the default value:
+        // https://learn.microsoft.com/en-us/dotnet/api/system.io.filesystemwatcher.notifyfilter?view=net-7.0#property-value
+        fileWatcher.NotifyFilter = NotifyFilters.LastWrite
+                                   | NotifyFilters.FileName
+                                   | NotifyFilters.DirectoryName;
+        
+        fileWatcher.IncludeSubdirectories = true;
+        fileWatcher.EnableRaisingEvents = enableRaisingEvents;
+
+        fileWatcher.Created += (_, e) => ProcessEvent(e, ChangeType.CREATED);
+        fileWatcher.Changed += (_, e) => ProcessEvent(e, ChangeType.CHANGED);
+        fileWatcher.Deleted += (_, e) => ProcessEvent(e, ChangeType.DELETED);
+        fileWatcher.Renamed += (_, e) => ProcessRenamedEvent(e);
+        fileWatcher.Error += (_, e) => _onError?.Invoke(e);
+        
+        // extra measures to handle symbolic link directories
+        fileWatcher.Created += RegisterWatcherForSymbolicLinkDir;
+        fileWatcher.Deleted += RemoveWatcherForSymbolicLinkDir;
+
+        //changing this to a higher value can lead into issues when watching UNC drives
+        fileWatcher.InternalBufferSize = 32768;
+
+        _fwDictionary.Add(path, fileWatcher);
+        return fileWatcher;
+    }
+    
+    
+    private void RegisterFileWatchersForSymbolicLinkDirs(string path)
+    {
+        // TODO check if test for nested sym links exists
+        // then make it just one recursive function
         foreach (var dirInfo in GetDirectoryInfosFunc(path))
         {
             // TODO: consider skipping hidden/system folders? 
             // See IG Issue #405 comment below
-
             if (IsSymbolicLinkDirectory(dirInfo.FullName))
             {
                 try
@@ -67,16 +106,26 @@ internal class FileWatcher : IDisposable
                 }
             }
         }
-
-        return watcher;
     }
 
+    private void MakeWatcher(string path)
+    {
+        RegisterFileWatcherIfNotExists(path);
 
+        foreach (var item in GetDirectoryInfosFunc(path))
+        {
+            if (IsSymbolicLinkDirectory(item.FullName))
+            {
+                RegisterFileWatcherIfNotExists(item.FullName);
+                MakeWatcher(item.FullName);
+            }
+        }
+    }
+    
+    
     /// <summary>
     /// Process event for type = [CHANGED; DELETED; CREATED]
     /// </summary>
-    /// <param name="e"></param>
-    /// <param name="changeType"></param>
     private void ProcessEvent(FileSystemEventArgs e, ChangeType changeType)
     {
         _eventCallback?.Invoke(new()
@@ -85,13 +134,9 @@ internal class FileWatcher : IDisposable
             FullPath = e.FullPath,
         });
     }
-
-
-    /// <summary>
-    /// Process event for type = RENAMED
-    /// </summary>
-    /// <param name="e"></param>
-    private void ProcessEvent(RenamedEventArgs e)
+    
+    
+    private void ProcessRenamedEvent(RenamedEventArgs e)
     {
         _eventCallback?.Invoke(new()
         {
@@ -100,31 +145,29 @@ internal class FileWatcher : IDisposable
             OldFullPath = e.OldFullPath,
         });
     }
-
-
-    private void MakeWatcher(string path)
+    
+    
+    private void RegisterFileWatcherIfNotExists(string path)
     {
-        if (!_fwDictionary.ContainsKey(path))
+        if (! _fwDictionary.ContainsKey(path))
         {
             RegisterFileWatcher(path);
         }
-
-        foreach (var item in GetDirectoryInfosFunc(path))
-        {
-            if (IsSymbolicLinkDirectory(item.FullName))
-            {
-                if (!_fwDictionary.ContainsKey(item.FullName))
-                {
-                    RegisterFileWatcher(item.FullName);
-                }
-
-                MakeWatcher(item.FullName);
-            }
-        }
     }
 
-
-    internal void MakeWatcher_Created(object sender, FileSystemEventArgs e)
+    
+    private bool IsSymbolicLinkDirectory(string path)
+    {
+        var attrs = GetFileAttributesFunc(path);
+        return attrs.HasFlag(FileAttributes.Directory)
+               && attrs.HasFlag(FileAttributes.ReparsePoint);
+    }
+    
+    
+    /// <summary>
+    /// Register additional filewatcher if the file event is a symbolic link directory.
+    /// </summary>
+    internal void RegisterWatcherForSymbolicLinkDir(object sender, FileSystemEventArgs e)
     {
         try
         {
@@ -139,46 +182,11 @@ internal class FileWatcher : IDisposable
         }
     }
 
-    private IFileSystemWatcherWrapper RegisterFileWatcher(string path, bool enableRaisingEvents = true)
+    /// <summary>
+    /// Cleanup filewatcher if a symbolic link dir is deleted
+    /// </summary>
+    internal void RemoveWatcherForSymbolicLinkDir(object sender, FileSystemEventArgs e)
     {
-        var fileWatcher = _watcherFactory();
-        fileWatcher.Path = path;
-        // this is identical to the default value:
-        // https://learn.microsoft.com/en-us/dotnet/api/system.io.filesystemwatcher.notifyfilter?view=net-7.0#property-value
-        fileWatcher.NotifyFilter = NotifyFilters.LastWrite
-                                   | NotifyFilters.FileName
-                                   | NotifyFilters.DirectoryName;
-        
-        fileWatcher.IncludeSubdirectories = true;
-        fileWatcher.EnableRaisingEvents = enableRaisingEvents;
-
-        // Bind internal events to manipulate the possible symbolic links
-        fileWatcher.Created += MakeWatcher_Created;
-        fileWatcher.Deleted += MakeWatcher_Deleted;
-
-        fileWatcher.Changed += (_, e) => ProcessEvent(e, ChangeType.CHANGED);
-        fileWatcher.Created += (_, e) => ProcessEvent(e, ChangeType.CREATED);
-        fileWatcher.Deleted += (_, e) => ProcessEvent(e, ChangeType.DELETED);
-        fileWatcher.Renamed += (_, e) => ProcessEvent(e);
-        fileWatcher.Error += (_, e) => _onError?.Invoke(e);
-        
-        //changing this to a higher value can lead into issues when watching UNC drives
-        fileWatcher.InternalBufferSize = 32768;
-
-        _fwDictionary.Add(path, fileWatcher);
-        return fileWatcher;
-    }
-
-    private bool IsSymbolicLinkDirectory(string path)
-    {
-        var attrs = GetFileAttributesFunc(path);
-        return attrs.HasFlag(FileAttributes.Directory)
-               && attrs.HasFlag(FileAttributes.ReparsePoint);
-    }
-    
-    internal void MakeWatcher_Deleted(object sender, FileSystemEventArgs e)
-    {
-        // If object removed, then I will dispose and remove them from dictionary
         if (_fwDictionary.ContainsKey(e.FullPath))
         {
             _fwDictionary[e.FullPath].Dispose();
