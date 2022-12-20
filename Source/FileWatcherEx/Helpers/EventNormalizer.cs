@@ -125,9 +125,12 @@ internal class EventNormalizer
     }
 
 
-    internal static bool IsParent(string p, string candidate)
+    internal static bool IsParent(string path, string candidatePath)
     {
-        return p.IndexOf(candidate + '\\', StringComparison.Ordinal) == 0;
+        // if exists, remove trailing "\" for both paths
+        candidatePath = candidatePath.TrimEnd('\\'); 
+        path = path.TrimEnd('\\');
+        return path.IndexOf(candidatePath + '\\', StringComparison.Ordinal) == 0;
     }
 
 
