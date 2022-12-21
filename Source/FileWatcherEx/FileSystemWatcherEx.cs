@@ -271,7 +271,7 @@ public class FileSystemWatcherEx : IDisposable, IFileSystemWatcherEx
         // Start watcher
         _watcher = new FileWatcher();
 
-        _fsw = _watcher.Create(FolderPath, onEvent, onError, FileSystemWatcherFactory);
+        _fsw = _watcher.Create(FolderPath, onEvent, onError, FileSystemWatcherFactory, _ => {});
 
         foreach (var filter in Filters)
         {
