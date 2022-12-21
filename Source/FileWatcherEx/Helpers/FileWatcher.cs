@@ -49,7 +49,7 @@ internal class FileWatcher : IDisposable
         _onError = onError;
 
         var watcher = RegisterFileWatcher(_watchPath, enableRaisingEvents: false);
-        RegisterFileWatchersForSymbolicLinkDirs(path);
+        RegisterAdditionalFileWatchersForSymLinkDirs(path);
         return watcher;
     }
 
@@ -74,8 +74,8 @@ internal class FileWatcher : IDisposable
         fileWatcher.Error += (_, e) => _onError?.Invoke(e);
         
         // extra measures to handle symbolic link directories
-        fileWatcher.Created += RegisterWatcherForSymbolicLinkDir;
-        fileWatcher.Deleted += RemoveWatcherForSymbolicLinkDir;
+        fileWatcher.Created += AddFileWatcherForSymbolicLinkDir;
+        fileWatcher.Deleted += RemoveFileWatcherForSymbolicLinkDir;
 
         //changing this to a higher value can lead into issues when watching UNC drives
         fileWatcher.InternalBufferSize = 32768;
@@ -85,43 +85,25 @@ internal class FileWatcher : IDisposable
     }
     
     
-    private void RegisterFileWatchersForSymbolicLinkDirs(string path)
+    /// <summary>
+    /// Recursively find sym link dir and register them 
+    /// </summary>
+    private void RegisterAdditionalFileWatchersForSymLinkDirs(string path)
     {
-        // TODO check if test for nested sym links exists
-        // then make it just one recursive function
-        foreach (var dirInfo in GetDirectoryInfosFunc(path))
+        if (IsSymbolicLinkDirectory(path))
         {
-            // TODO: consider skipping hidden/system folders? 
-            // See IG Issue #405 comment below
-            if (IsSymbolicLinkDirectory(dirInfo.FullName))
+            TryRegisterFileWatcher(path);
+        }
+
+        if (IsDirectory(path))
+        {
+            foreach (var dirInfo in GetDirectoryInfosFunc(path))
             {
-                try
-                {
-                    MakeWatcher(dirInfo.FullName);
-                }
-                catch
-                {
-                    // IG Issue #405: throws exception on Windows 10
-                    // for "c:\users\user\application data" folder and sub-folders.
-                }
+                RegisterAdditionalFileWatchersForSymLinkDirs(dirInfo.FullName);
             }
         }
     }
 
-    private void MakeWatcher(string path)
-    {
-        RegisterFileWatcherIfNotExists(path);
-
-        foreach (var item in GetDirectoryInfosFunc(path))
-        {
-            if (IsSymbolicLinkDirectory(item.FullName))
-            {
-                RegisterFileWatcherIfNotExists(item.FullName);
-                MakeWatcher(item.FullName);
-            }
-        }
-    }
-    
     
     /// <summary>
     /// Process event for type = [CHANGED; DELETED; CREATED]
@@ -147,11 +129,46 @@ internal class FileWatcher : IDisposable
     }
     
     
-    private void RegisterFileWatcherIfNotExists(string path)
+    /// <summary>
+    /// Register additional filewatcher if the file event is a symbolic link directory.
+    /// </summary>
+    internal void AddFileWatcherForSymbolicLinkDir(object sender, FileSystemEventArgs e)
+    {
+        if (IsSymbolicLinkDirectory(e.FullPath))
+        {
+            TryRegisterFileWatcher(e.FullPath);
+        }
+    }
+
+    /// <summary>
+    /// Cleanup filewatcher if a symbolic link dir is deleted
+    /// </summary>
+    internal void RemoveFileWatcherForSymbolicLinkDir(object sender, FileSystemEventArgs e)
+    {
+        if (_fwDictionary.ContainsKey(e.FullPath))
+        {
+            _fwDictionary[e.FullPath].Dispose();
+            _fwDictionary.Remove(e.FullPath);
+        }
+    }
+    
+    
+    private void TryRegisterFileWatcher(string path)
     {
         if (! _fwDictionary.ContainsKey(path))
         {
-            RegisterFileWatcher(path);
+            try
+            {
+                RegisterFileWatcher(path);
+            }
+            catch (Exception ex)
+            {
+                // IG Issue #405: throws exception on Windows 10
+                // for "c:\users\user\application data" folder and sub-folders.
+             
+                // TODO pass in log action
+                // Console.Error.WriteLine($"Error registering file system watcher for directory '{path}'. Error was: {ex.Message}");
+            }
         }
     }
 
@@ -164,34 +181,10 @@ internal class FileWatcher : IDisposable
     }
     
     
-    /// <summary>
-    /// Register additional filewatcher if the file event is a symbolic link directory.
-    /// </summary>
-    internal void RegisterWatcherForSymbolicLinkDir(object sender, FileSystemEventArgs e)
+    private bool IsDirectory(string path)
     {
-        try
-        {
-            if (IsSymbolicLinkDirectory(e.FullPath))
-            {
-                RegisterFileWatcher(e.FullPath);
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine("<<ERROR>>: " + ex.Message);
-        }
-    }
-
-    /// <summary>
-    /// Cleanup filewatcher if a symbolic link dir is deleted
-    /// </summary>
-    internal void RemoveWatcherForSymbolicLinkDir(object sender, FileSystemEventArgs e)
-    {
-        if (_fwDictionary.ContainsKey(e.FullPath))
-        {
-            _fwDictionary[e.FullPath].Dispose();
-            _fwDictionary.Remove(e.FullPath);
-        }
+        var attrs = GetFileAttributesFunc(path);
+        return attrs.HasFlag(FileAttributes.Directory);
     }
 
 

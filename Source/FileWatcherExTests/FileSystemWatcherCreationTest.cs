@@ -90,7 +90,7 @@ public class FileSystemWatcherCreationTest
         Directory.CreateDirectory(subdirPath);
         
         // simulate file watcher trigger
-        _uut.RegisterWatcherForSymbolicLinkDir(null, 
+        _uut.AddFileWatcherForSymbolicLinkDir(null, 
             new FileSystemEventArgs(WatcherChangeTypes.Created, dir.FullPath, "subdir"));
 
         // subdir is ignored
@@ -102,7 +102,7 @@ public class FileSystemWatcherCreationTest
         Directory.CreateSymbolicLink(symlinkPath, subdirPath);
 
         // simulate file watcher trigger
-        _uut.RegisterWatcherForSymbolicLinkDir(null, 
+        _uut.AddFileWatcherForSymbolicLinkDir(null, 
             new FileSystemEventArgs(WatcherChangeTypes.Created, dir.FullPath, "sym"));
 
         // symlink dir is registered
@@ -114,7 +114,7 @@ public class FileSystemWatcherCreationTest
         Directory.Delete(symlinkPath);
         
         // simulate file watcher trigger
-        _uut.RemoveWatcherForSymbolicLinkDir(null, 
+        _uut.RemoveFileWatcherForSymbolicLinkDir(null, 
             new FileSystemEventArgs(WatcherChangeTypes.Deleted, dir.FullPath, "sym"));
         
         // sym-link file watcher is removed
@@ -127,7 +127,7 @@ public class FileSystemWatcherCreationTest
     [Fact]
     public void MakeWatcher_Create_Exceptions_Are_Silently_Ignored()
     {
-        _uut.RegisterWatcherForSymbolicLinkDir(null, 
+        _uut.AddFileWatcherForSymbolicLinkDir(null, 
             new FileSystemEventArgs(WatcherChangeTypes.Created, "/not/existing", "foo"));
     }
     
