@@ -263,6 +263,11 @@ public class FileSystemWatcherEx : IDisposable, IFileSystemWatcherEx
         }
 
 
+        // TODO
+        // - FileWatcher should not return underlying filewatcher 
+        // - introduce stronger encapsulation
+        // - `watcher` should delegate the set properties to ALL file watchers
+        // - if you register a dir later, these 4 properties should be used
         // Start watcher
         _watcher = new FileWatcher();
 
