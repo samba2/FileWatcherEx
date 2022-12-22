@@ -16,6 +16,12 @@ internal class FileWatcher : IDisposable
     private Func<IFileSystemWatcherWrapper> _watcherFactory;
     private Action<string> _logger = _ => {};
 
+    // defaults from:
+    // https://learn.microsoft.com/en-us/dotnet/api/system.io.filesystemwatcher.notifyfilter?view=net-7.0#property-value
+    private NotifyFilters _notifyFilters = NotifyFilters.LastWrite
+                                           | NotifyFilters.FileName
+                                           | NotifyFilters.DirectoryName;
+
     internal Func<string, FileAttributes> GetFileAttributesFunc
     {
         get => _getFileAttributesFunc ?? File.GetAttributes;
@@ -33,6 +39,18 @@ internal class FileWatcher : IDisposable
     }
 
     internal Dictionary<string, IFileSystemWatcherWrapper> FwDictionary => _fwDictionary;
+    public NotifyFilters NotifyFilter
+    {
+        set
+        {
+            _notifyFilters = value;
+            
+            foreach (var watcher in _fwDictionary.Values)
+            {
+                watcher.NotifyFilter = value;
+            }
+        }
+    }
 
     /// <summary>
     /// Create new instance of FileSystemWatcherWrapper
@@ -63,12 +81,7 @@ internal class FileWatcher : IDisposable
     {
         var fileWatcher = _watcherFactory();
         fileWatcher.Path = path;
-        // this is identical to the default value:
-        // https://learn.microsoft.com/en-us/dotnet/api/system.io.filesystemwatcher.notifyfilter?view=net-7.0#property-value
-        fileWatcher.NotifyFilter = NotifyFilters.LastWrite
-                                   | NotifyFilters.FileName
-                                   | NotifyFilters.DirectoryName;
-        
+        fileWatcher.NotifyFilter = _notifyFilters;
         fileWatcher.IncludeSubdirectories = true;
         fileWatcher.EnableRaisingEvents = enableRaisingEvents;
 
@@ -169,6 +182,13 @@ internal class FileWatcher : IDisposable
         return attrs.HasFlag(FileAttributes.Directory)
                && attrs.HasFlag(FileAttributes.ReparsePoint);
     }
+
+    // for testing
+    internal List<IFileSystemWatcherWrapper> GetFileWatchers()
+    {
+        return _fwDictionary.Values.ToList();
+    }
+    
     
     /// <summary>
     /// Dispose the instance

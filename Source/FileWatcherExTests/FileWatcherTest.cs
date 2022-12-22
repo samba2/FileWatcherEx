@@ -27,7 +27,7 @@ public class FileWatcherTest
         AssertContainsWatcherFor(dir.FullPath);
     }
 
-    
+
     // creates 2 sub-directories and 2 nested symlinks
     // file watchers are registered for the root dir and the symlinks
     // for the sub-directories, no extra file watchers are created
@@ -39,7 +39,7 @@ public class FileWatcherTest
     public void FileWatchers_For_SymLink_Dirs_Are_Created_On_Startup()
     {
         using var dir = new TempDir();
-        
+
         // {tempdir}/subdir1
         var subdirPath1 = Path.Combine(dir.FullPath, "subdir1");
         Directory.CreateDirectory(subdirPath1);
@@ -51,7 +51,7 @@ public class FileWatcherTest
         // symlink {tempdir}/sym1 to {tempdir}/subdir1
         var symlinkPath1 = Path.Combine(dir.FullPath, "sym1");
         Directory.CreateSymbolicLink(symlinkPath1, subdirPath1);
-        
+
         // symlink {tempdir}/sym1/sym2 to {tempdir}/subdir2
         var symlinkPath2 = Path.Combine(dir.FullPath, "sym1", "sym2");
         Directory.CreateSymbolicLink(symlinkPath2, subdirPath2);
@@ -62,17 +62,17 @@ public class FileWatcherTest
         AssertContainsWatcherFor(symlinkPath1);
         AssertContainsWatcherFor(symlinkPath2);
     }
-    
+
     [Fact]
     public void FileWatchers_For_SymLink_Dirs_Are_Created_During_Runtime()
     {
         using var dir = new TempDir();
         _uut = CreateFileWatcher(dir.FullPath);
-        
+
         // create subdir
         var subdirPath = Path.Combine(dir.FullPath, "subdir");
         Directory.CreateDirectory(subdirPath);
-        
+
         // simulate file watcher trigger
         _uut.TryRegisterFileWatcherForSymbolicLinkDir(subdirPath);
 
@@ -94,15 +94,15 @@ public class FileWatcherTest
 
         //  remove the symlink again
         Directory.Delete(symlinkPath);
-        
+
         // simulate file watcher trigger
-        _uut.UnregisterFileWatcherForSymbolicLinkDir(null, 
+        _uut.UnregisterFileWatcherForSymbolicLinkDir(null,
             new FileSystemEventArgs(WatcherChangeTypes.Deleted, dir.FullPath, "sym"));
-        
+
         // sym-link file watcher is removed
         Assert.Single(_uut.FwDictionary);
         AssertContainsWatcherFor(dir.FullPath);
-        
+
         _uut.Dispose();
     }
 
@@ -112,18 +112,49 @@ public class FileWatcherTest
         _uut = CreateFileWatcher("/bar");
         _uut.TryRegisterFileWatcherForSymbolicLinkDir("/not/existing/foo");
     }
-    
+
+    [Fact]
+    public void Properties_Are_Propagated()
+    {
+        using var dir = new TempDir();
+
+        var subDir = dir.CreateSubDir("subdir");
+
+        // symlink at startup detected
+        dir.CreateSymlink(
+            symLink: "sym1",
+            target: subDir); 
+
+        // start the watcher + configure
+        _uut = CreateFileWatcher(dir.FullPath);
+        _uut.NotifyFilter = NotifyFilters.LastAccess;
+        
+        // create symlink during runtime
+        var symlinkPath2 = dir.CreateSymlink(
+            symLink: "sym2",
+            target: subDir); 
+
+        // simulate file watcher trigger
+        _uut.TryRegisterFileWatcherForSymbolicLinkDir(symlinkPath2);
+        
+        Assert.Equal(3, _mocks.Count);
+        Assert.All(
+            _mocks,
+            mock =>
+                mock.VerifySet(w => w.NotifyFilter = NotifyFilters.LastAccess));
+    }
+
     private FileWatcher CreateFileWatcher(string path)
     {
-        var fw = new FileWatcher(path, 
-            _ => {}, 
-            _ => {},
+        var fw = new FileWatcher(path,
+            _ => { },
+            _ => { },
             WatcherFactoryWithMemory,
-            _ => {});
+            _ => { });
         fw.Init();
         return fw;
     }
-    
+
     private IFileSystemWatcherWrapper WatcherFactoryWithMemory()
     {
         var mock = new Mock<IFileSystemWatcherWrapper>();
@@ -135,18 +166,18 @@ public class FileWatcherTest
     {
         var _ = _uut.FwDictionary[path];
         var foundMocks = (
-            from mock in _mocks 
-            where IsMockFor(mock, path) 
-            select mock)
+                from mock in _mocks
+                where HasPropertySetTo(mock, watcher => watcher.Path = path)
+                select mock)
             .Count();
-        Assert.Equal(1, foundMocks);        
+        Assert.Equal(1, foundMocks);
     }
 
-    private bool IsMockFor(Mock<IFileSystemWatcherWrapper> mock, string path)
+    private static bool HasPropertySetTo(Mock<IFileSystemWatcherWrapper> mock, Action<IFileSystemWatcherWrapper> setterExpression)
     {
         try
         {
-            mock.VerifySet(w => w.Path = path);
+            mock.VerifySet(setterExpression);
             return true;
         }
         catch (MockException)
@@ -154,4 +185,5 @@ public class FileWatcherTest
             return false;
         }
     }
+
 }
