@@ -269,19 +269,24 @@ public class FileSystemWatcherEx : IDisposable, IFileSystemWatcherEx
         // - `watcher` should delegate the set properties to ALL file watchers
         // - if you register a dir later, these 4 properties should be used
         // Start watcher
-        _watcher = new FileWatcher();
+        _watcher = new FileWatcher(FolderPath, onEvent, onError, FileSystemWatcherFactory, _ => {});
+        _fsw = _watcher.Init();
 
-        _fsw = _watcher.Create(FolderPath, onEvent, onError, FileSystemWatcherFactory, _ => {});
-
+        // all
         foreach (var filter in Filters)
         {
             _fsw.Filters.Add(filter);
         }
 
+        // all
         _fsw.NotifyFilter = NotifyFilter;
+        // all. if this is not enabled, then also no additional file watchers should be registered
         _fsw.IncludeSubdirectories = IncludeSubdirectories;
+        
+        // exception: only root watcher
         _fsw.SynchronizingObject = SynchronizingObject;
 
+        // global
         // Start watching
         _fsw.EnableRaisingEvents = true;
     }

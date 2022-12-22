@@ -42,17 +42,19 @@ internal class FileWatcher : IDisposable
     /// <param name="onError">onError callback</param>
     /// <param name="watcherFactory">how to create a FileSystemWatcher</param>
     /// <param name="logger">logging callback</param>
-    /// <returns></returns>
-    public IFileSystemWatcherWrapper Create(string path, Action<FileChangedEvent> onEvent, Action<ErrorEventArgs> onError, Func<IFileSystemWatcherWrapper> watcherFactory, Action<string> logger)
+    public FileWatcher(string path, Action<FileChangedEvent> onEvent, Action<ErrorEventArgs> onError, Func<IFileSystemWatcherWrapper> watcherFactory, Action<string> logger)
     {
         _logger = logger;
         _watcherFactory = watcherFactory;
         _watchPath = path;
         _eventCallback = onEvent;        
         _onError = onError;
-
+    }
+    
+    public IFileSystemWatcherWrapper Init()
+    {
         var watcher = RegisterFileWatcher(_watchPath, enableRaisingEvents: false);
-        RegisterAdditionalFileWatchersForSymLinkDirs(path);
+        RegisterAdditionalFileWatchersForSymLinkDirs(_watchPath);
         return watcher;
     }
 
@@ -89,7 +91,8 @@ internal class FileWatcher : IDisposable
     
     
     /// <summary>
-    /// Recursively find sym link dir and register them 
+    /// Recursively find sym link dir and register them.
+    /// Background: the native filewatcher does not follow symlinks so they need to be treated separately.
     /// </summary>
     private void RegisterAdditionalFileWatchersForSymLinkDirs(string path)
     {

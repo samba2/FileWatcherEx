@@ -7,32 +7,23 @@ using Xunit.Abstractions;
 
 namespace FileWatcherExTests;
 
-public class FileSystemWatcherCreationTest
+public class FileWatcherTest
 {
     private readonly ITestOutputHelper _testOutputHelper;
-    private readonly FileWatcher _uut;
+    private FileWatcher _uut;
     private readonly List<Mock<IFileSystemWatcherWrapper>> _mocks;
 
-    public FileSystemWatcherCreationTest(ITestOutputHelper testOutputHelper)
+    public FileWatcherTest(ITestOutputHelper testOutputHelper)
     {
         _testOutputHelper = testOutputHelper;
-        _uut = new FileWatcher();
         _mocks = new List<Mock<IFileSystemWatcherWrapper>>();
-
     }
 
     [Fact]
     public void Root_Watcher_Is_Created()
     {
         using var dir = new TempDir();
-
-        _uut.Create(
-            dir.FullPath, 
-            _ => {}, 
-            _ => {},
-            WatcherFactoryWithMemory,
-            _ => {});
-            
+        _uut = CreateFileWatcher(dir.FullPath);
         AssertContainsWatcherFor(dir.FullPath);
     }
 
@@ -65,13 +56,8 @@ public class FileSystemWatcherCreationTest
         var symlinkPath2 = Path.Combine(dir.FullPath, "sym1", "sym2");
         Directory.CreateSymbolicLink(symlinkPath2, subdirPath2);
 
-        _uut.Create(
-            dir.FullPath, 
-            _ => {}, 
-            _ => {},
-            WatcherFactoryWithMemory,
-            _ => {});
-        
+        _uut = CreateFileWatcher(dir.FullPath);
+
         AssertContainsWatcherFor(dir.FullPath);
         AssertContainsWatcherFor(symlinkPath1);
         AssertContainsWatcherFor(symlinkPath2);
@@ -81,12 +67,7 @@ public class FileSystemWatcherCreationTest
     public void FileWatchers_For_SymLink_Dirs_Are_Created_During_Runtime()
     {
         using var dir = new TempDir();
-        _uut.Create(
-            dir.FullPath, 
-            _ => {}, 
-            _ => {},
-            WatcherFactoryWithMemory,
-            _ => {});
+        _uut = CreateFileWatcher(dir.FullPath);
         
         // create subdir
         var subdirPath = Path.Combine(dir.FullPath, "subdir");
@@ -128,9 +109,28 @@ public class FileSystemWatcherCreationTest
     [Fact]
     public void MakeWatcher_Create_Exceptions_Are_Silently_Ignored()
     {
+        _uut = CreateFileWatcher("/bar");
         _uut.TryRegisterFileWatcherForSymbolicLinkDir("/not/existing/foo");
     }
     
+    private FileWatcher CreateFileWatcher(string path)
+    {
+        var fw = new FileWatcher(path, 
+            _ => {}, 
+            _ => {},
+            WatcherFactoryWithMemory,
+            _ => {});
+        fw.Init();
+        return fw;
+    }
+    
+    private IFileSystemWatcherWrapper WatcherFactoryWithMemory()
+    {
+        var mock = new Mock<IFileSystemWatcherWrapper>();
+        _mocks.Add(mock);
+        return mock.Object;
+    }
+
     private void AssertContainsWatcherFor(string path)
     {
         var _ = _uut.FwDictionary[path];
@@ -153,12 +153,5 @@ public class FileSystemWatcherCreationTest
         {
             return false;
         }
-    }
-    
-    private IFileSystemWatcherWrapper WatcherFactoryWithMemory()
-    {
-        var mock = new Mock<IFileSystemWatcherWrapper>();
-        _mocks.Add(mock);
-        return mock.Object;
     }
 }
