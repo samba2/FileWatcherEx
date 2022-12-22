@@ -41,20 +41,16 @@ public class FileWatcherTest
         using var dir = new TempDir();
 
         // {tempdir}/subdir1
-        var subdirPath1 = Path.Combine(dir.FullPath, "subdir1");
-        Directory.CreateDirectory(subdirPath1);
+        var subdirPath1 = dir.CreateSubDir("subdir1");
 
         // {tempdir}/subdir2
-        var subdirPath2 = Path.Combine(dir.FullPath, "subdir2");
-        Directory.CreateDirectory(subdirPath2);
+        var subdirPath2 = dir.CreateSubDir("subdir2");
 
         // symlink {tempdir}/sym1 to {tempdir}/subdir1
-        var symlinkPath1 = Path.Combine(dir.FullPath, "sym1");
-        Directory.CreateSymbolicLink(symlinkPath1, subdirPath1);
+        var symlinkPath1 = dir.CreateSymlink(symLink: "sym1", target: subdirPath1);
 
         // symlink {tempdir}/sym1/sym2 to {tempdir}/subdir2
-        var symlinkPath2 = Path.Combine(dir.FullPath, "sym1", "sym2");
-        Directory.CreateSymbolicLink(symlinkPath2, subdirPath2);
+        var symlinkPath2 = dir.CreateSymlink(symLink: new []{"sym1", "sym2"}, target: subdirPath2);
 
         _uut = CreateFileWatcher(dir.FullPath);
 
@@ -69,9 +65,7 @@ public class FileWatcherTest
         using var dir = new TempDir();
         _uut = CreateFileWatcher(dir.FullPath);
 
-        // create subdir
-        var subdirPath = Path.Combine(dir.FullPath, "subdir");
-        Directory.CreateDirectory(subdirPath);
+        var subdirPath = dir.CreateSubDir("subdir");
 
         // simulate file watcher trigger
         _uut.TryRegisterFileWatcherForSymbolicLinkDir(subdirPath);
@@ -80,9 +74,7 @@ public class FileWatcherTest
         Assert.Single(_uut.FwDictionary);
         AssertContainsWatcherFor(dir.FullPath);
 
-        // create symlink
-        var symlinkPath = Path.Combine(dir.FullPath, "sym");
-        Directory.CreateSymbolicLink(symlinkPath, subdirPath);
+        var symlinkPath = dir.CreateSymlink(symLink: "sym", target: subdirPath);
 
         // simulate file watcher trigger
         _uut.TryRegisterFileWatcherForSymbolicLinkDir(symlinkPath);
