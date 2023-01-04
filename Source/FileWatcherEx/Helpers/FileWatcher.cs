@@ -44,10 +44,13 @@ internal class FileWatcher : IDisposable
                                                       | NotifyFilters.DirectoryName;
     public bool EnableRaisingEvents { get; set; }
     
+    public bool IncludeSubdirectories { get; set; }
+    
     public Collection<string> Filters { get; } = new();
 
     public ISynchronizeInvoke? SynchronizingObject { get; set; }
-
+    
+    
     /// <summary>
     /// Create new instance of FileSystemWatcherWrapper
     ///
@@ -106,7 +109,7 @@ internal class FileWatcher : IDisposable
     {
         fileWatcher.Path = path;
         fileWatcher.NotifyFilter = NotifyFilter;
-        fileWatcher.IncludeSubdirectories = true;
+        fileWatcher.IncludeSubdirectories = IncludeSubdirectories;
         fileWatcher.EnableRaisingEvents = EnableRaisingEvents;
         Filters.ToList().ForEach(filter => fileWatcher.Filters.Add(filter));
 

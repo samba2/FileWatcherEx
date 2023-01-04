@@ -133,6 +133,7 @@ public class FileWatcherTest
         _uut.Filters.Add("*.foo");
         _uut.Filters.Add("*.bar");
         _uut.EnableRaisingEvents = true;
+        _uut.IncludeSubdirectories = true;
         var syncObj = new Mock<ISynchronizeInvoke>().Object;
         _uut.SynchronizingObject = syncObj;
 
@@ -158,6 +159,10 @@ public class FileWatcherTest
             _mocks,
             mock =>
                 mock.VerifySet(w => w.EnableRaisingEvents = true));
+        Assert.All(
+            _mocks,
+            mock =>
+                mock.VerifySet(w => w.IncludeSubdirectories = true));
         Assert.All(
             _mocks, 
             mock => Assert.Equal(mock.Object.Filters, new Collection<string> { "*.foo", "*.bar" }));

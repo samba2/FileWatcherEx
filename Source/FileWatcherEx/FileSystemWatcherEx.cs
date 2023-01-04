@@ -278,9 +278,7 @@ public class FileSystemWatcherEx : IDisposable, IFileSystemWatcherEx
         }
 
         _fsw.NotifyFilter = NotifyFilter;
-        // TODO all. if this is not enabled, then also no additional file watchers should be registered
         _fsw.IncludeSubdirectories = IncludeSubdirectories;
-        
         _fsw.SynchronizingObject = SynchronizingObject;
         _fsw.EnableRaisingEvents = true;
     }
