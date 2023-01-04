@@ -1,4 +1,5 @@
-﻿using FileWatcherEx;
+﻿using System.ComponentModel;
+using FileWatcherEx;
 using FileWatcherEx.Helpers;
 using FileWatcherExTests.Helper;
 using Moq;
@@ -10,7 +11,7 @@ namespace FileWatcherExTests;
 public class FileWatcherTest
 {
     private readonly ITestOutputHelper _testOutputHelper;
-    private FileWatcher _uut;
+    private FileWatcher? _uut;
     private readonly List<Mock<IFileSystemWatcherWrapper>> _mocks;
 
     public FileWatcherTest(ITestOutputHelper testOutputHelper)
@@ -112,16 +113,21 @@ public class FileWatcherTest
 
         var subDir = dir.CreateSubDir("subdir");
 
-        // symlink at startup detected
+        // symlink for detection at startup
         dir.CreateSymlink(
             symLink: "sym1",
             target: subDir); 
 
-        // start the watcher + configure
         _uut = CreateFileWatcher(dir.FullPath);
-        _uut.NotifyFilter = NotifyFilters.LastAccess;
         
-        // create symlink during runtime
+        // perform settings. all, except SynchronizingObject are propagated
+        // to all registered watchers
+        _uut.NotifyFilter = NotifyFilters.LastAccess;
+        _uut.EnableRaisingEvents = true;
+        var syncObj = new Mock<ISynchronizeInvoke>().Object;
+        _uut.SynchronizingObject = syncObj;
+        
+        // create symlink at runtime
         var symlinkPath2 = dir.CreateSymlink(
             symLink: "sym2",
             target: subDir); 
@@ -129,11 +135,28 @@ public class FileWatcherTest
         // simulate file watcher trigger
         _uut.TryRegisterFileWatcherForSymbolicLinkDir(symlinkPath2);
         
+        // 1x root watcher, 1x sym link at startup, 1x sym link at runtime 
         Assert.Equal(3, _mocks.Count);
+        // all watchers have properties set
         Assert.All(
             _mocks,
             mock =>
                 mock.VerifySet(w => w.NotifyFilter = NotifyFilters.LastAccess));
+        Assert.All(
+            _mocks,
+            mock =>
+                mock.VerifySet(w => w.EnableRaisingEvents = true));
+        
+        // sync. object is only set for root watcher
+        // TODO rename root watcher
+        Assert.Collection(_mocks, 
+              mock =>
+              {
+                  mock.VerifySet(w => w.Path = dir.FullPath);
+                  mock.VerifySet(w => w.SynchronizingObject = syncObj);
+              },
+              mock => mock.VerifySet(w => w.SynchronizingObject = syncObj, Times.Never),
+              mock => mock.VerifySet(w => w.SynchronizingObject = syncObj, Times.Never));
     }
 
     private FileWatcher CreateFileWatcher(string path)

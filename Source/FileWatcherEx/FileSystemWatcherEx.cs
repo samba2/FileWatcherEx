@@ -278,16 +278,11 @@ public class FileSystemWatcherEx : IDisposable, IFileSystemWatcherEx
             _fsw.Filters.Add(filter);
         }
 
-        // all
         _fsw.NotifyFilter = NotifyFilter;
         // all. if this is not enabled, then also no additional file watchers should be registered
         _fsw.IncludeSubdirectories = IncludeSubdirectories;
         
-        // exception: only root watcher
         _fsw.SynchronizingObject = SynchronizingObject;
-
-        // global
-        // Start watching
         _fsw.EnableRaisingEvents = true;
     }
 

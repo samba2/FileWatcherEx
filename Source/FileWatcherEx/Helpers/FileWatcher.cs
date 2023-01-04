@@ -2,6 +2,8 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+using System.ComponentModel;
+
 namespace FileWatcherEx.Helpers;
 
 internal class FileWatcher : IDisposable
@@ -14,13 +16,16 @@ internal class FileWatcher : IDisposable
     private Func<string, FileAttributes>? _getFileAttributesFunc;
     private Func<string, DirectoryInfo[]>? _getDirectoryInfosFunc;
     private Func<IFileSystemWatcherWrapper> _watcherFactory;
-    private Action<string> _logger = _ => {};
+    private Action<string> _logger = _ => { };
 
     // defaults from:
     // https://learn.microsoft.com/en-us/dotnet/api/system.io.filesystemwatcher.notifyfilter?view=net-7.0#property-value
     private NotifyFilters _notifyFilters = NotifyFilters.LastWrite
                                            | NotifyFilters.FileName
                                            | NotifyFilters.DirectoryName;
+
+    private bool _enableRaisingEvents;
+    private ISynchronizeInvoke _synchronizingObject;
 
     internal Func<string, FileAttributes> GetFileAttributesFunc
     {
@@ -39,17 +44,29 @@ internal class FileWatcher : IDisposable
     }
 
     internal Dictionary<string, IFileSystemWatcherWrapper> FwDictionary => _fwDictionary;
+
     public NotifyFilters NotifyFilter
     {
         set
         {
             _notifyFilters = value;
-            
-            foreach (var watcher in _fwDictionary.Values)
-            {
-                watcher.NotifyFilter = value;
-            }
+            _fwDictionary.Values.ToList().ForEach(w => w.NotifyFilter = value);
         }
+    }
+
+    public bool EnableRaisingEvents
+    {
+        set
+        {
+            _enableRaisingEvents = value;
+            _fwDictionary.Values.ToList().ForEach(w => w.EnableRaisingEvents = value);
+        }
+    }
+
+    public ISynchronizeInvoke SynchronizingObject
+    {
+        // only set root object
+        set => _fwDictionary[_watchPath].SynchronizingObject = value;
     }
 
     /// <summary>
@@ -60,37 +77,38 @@ internal class FileWatcher : IDisposable
     /// <param name="onError">onError callback</param>
     /// <param name="watcherFactory">how to create a FileSystemWatcher</param>
     /// <param name="logger">logging callback</param>
-    public FileWatcher(string path, Action<FileChangedEvent> onEvent, Action<ErrorEventArgs> onError, Func<IFileSystemWatcherWrapper> watcherFactory, Action<string> logger)
+    public FileWatcher(string path, Action<FileChangedEvent> onEvent, Action<ErrorEventArgs> onError,
+        Func<IFileSystemWatcherWrapper> watcherFactory, Action<string> logger)
     {
         _logger = logger;
         _watcherFactory = watcherFactory;
         _watchPath = path;
-        _eventCallback = onEvent;        
+        _eventCallback = onEvent;
         _onError = onError;
     }
-    
+
     public IFileSystemWatcherWrapper Init()
     {
-        var watcher = RegisterFileWatcher(_watchPath, enableRaisingEvents: false);
+        var watcher = RegisterFileWatcher(_watchPath);
         RegisterAdditionalFileWatchersForSymLinkDirs(_watchPath);
         return watcher;
     }
 
-    
-    private IFileSystemWatcherWrapper RegisterFileWatcher(string path, bool enableRaisingEvents = true)
+
+    private IFileSystemWatcherWrapper RegisterFileWatcher(string path)
     {
         var fileWatcher = _watcherFactory();
         fileWatcher.Path = path;
         fileWatcher.NotifyFilter = _notifyFilters;
         fileWatcher.IncludeSubdirectories = true;
-        fileWatcher.EnableRaisingEvents = enableRaisingEvents;
+        fileWatcher.EnableRaisingEvents = _enableRaisingEvents;
 
         fileWatcher.Created += (_, e) => ProcessEvent(e, ChangeType.CREATED);
         fileWatcher.Changed += (_, e) => ProcessEvent(e, ChangeType.CHANGED);
         fileWatcher.Deleted += (_, e) => ProcessEvent(e, ChangeType.DELETED);
         fileWatcher.Renamed += (_, e) => ProcessRenamedEvent(e);
         fileWatcher.Error += (_, e) => _onError?.Invoke(e);
-        
+
         // extra measures to handle symbolic link directories
         fileWatcher.Created += (_, e) => TryRegisterFileWatcherForSymbolicLinkDir(e.FullPath);
         fileWatcher.Deleted += UnregisterFileWatcherForSymbolicLinkDir;
@@ -101,8 +119,8 @@ internal class FileWatcher : IDisposable
         _fwDictionary.Add(path, fileWatcher);
         return fileWatcher;
     }
-    
-    
+
+
     /// <summary>
     /// Recursively find sym link dir and register them.
     /// Background: the native filewatcher does not follow symlinks so they need to be treated separately.
@@ -120,7 +138,7 @@ internal class FileWatcher : IDisposable
         }
     }
 
-    
+
     /// <summary>
     /// Process event for type = [CHANGED; DELETED; CREATED]
     /// </summary>
@@ -132,8 +150,8 @@ internal class FileWatcher : IDisposable
             FullPath = e.FullPath,
         });
     }
-    
-    
+
+
     private void ProcessRenamedEvent(RenamedEventArgs e)
     {
         _eventCallback?.Invoke(new()
@@ -143,13 +161,13 @@ internal class FileWatcher : IDisposable
             OldFullPath = e.OldFullPath,
         });
     }
-    
-    
+
+
     internal void TryRegisterFileWatcherForSymbolicLinkDir(string path)
     {
         try
         {
-            if ( IsSymbolicLinkDirectory(path) && !_fwDictionary.ContainsKey(path) )
+            if (IsSymbolicLinkDirectory(path) && !_fwDictionary.ContainsKey(path))
             {
                 RegisterFileWatcher(path);
             }
@@ -162,7 +180,7 @@ internal class FileWatcher : IDisposable
         }
     }
 
-    
+
     /// <summary>
     /// Cleanup filewatcher if a symbolic link dir is deleted
     /// </summary>
@@ -174,8 +192,8 @@ internal class FileWatcher : IDisposable
             _fwDictionary.Remove(e.FullPath);
         }
     }
-    
-    
+
+
     private bool IsSymbolicLinkDirectory(string path)
     {
         var attrs = GetFileAttributesFunc(path);
@@ -188,8 +206,8 @@ internal class FileWatcher : IDisposable
     {
         return _fwDictionary.Values.ToList();
     }
-    
-    
+
+
     /// <summary>
     /// Dispose the instance
     /// </summary>
