@@ -10,14 +10,13 @@ namespace FileWatcherEx.Helpers;
 internal class FileWatcher : IDisposable
 {
     // TODO double check properties -> are they all needed ?
-    private string _watchPath = string.Empty;
-    private Action<FileChangedEvent>? _eventCallback = null;
-    private readonly Dictionary<string, IFileSystemWatcherWrapper> _fwDictionary = new();
-    private Action<ErrorEventArgs>? _onError = null;
+    private readonly string _watchPath;
+    private readonly Action<FileChangedEvent>? _eventCallback;
+    private readonly Action<ErrorEventArgs>? _onError;
     private Func<string, FileAttributes>? _getFileAttributesFunc;
     private Func<string, DirectoryInfo[]>? _getDirectoryInfosFunc;
-    private Func<IFileSystemWatcherWrapper> _watcherFactory;
-    private Action<string> _logger = _ => { };
+    private readonly Func<IFileSystemWatcherWrapper> _watcherFactory;
+    private readonly Action<string> _logger;
 
 
     internal Func<string, FileAttributes> GetFileAttributesFunc
@@ -36,7 +35,7 @@ internal class FileWatcher : IDisposable
         set => _getDirectoryInfosFunc = value;
     }
 
-    internal Dictionary<string, IFileSystemWatcherWrapper> FwDictionary => _fwDictionary;
+    internal Dictionary<string, IFileSystemWatcherWrapper> FileWatchers { get; } = new();
 
     // defaults from:
     // https://learn.microsoft.com/en-us/dotnet/api/system.io.filesystemwatcher.notifyfilter?view=net-7.0#property-value
@@ -47,7 +46,7 @@ internal class FileWatcher : IDisposable
     
     public Collection<string> Filters { get; } = new();
 
-    public ISynchronizeInvoke SynchronizingObject { get; set; }
+    public ISynchronizeInvoke? SynchronizingObject { get; set; }
 
     /// <summary>
     /// Create new instance of FileSystemWatcherWrapper
@@ -86,7 +85,7 @@ internal class FileWatcher : IDisposable
         SetFileWatcherProperties(fileWatcher, path);
         RegisterFileWatcherEventHandlers(fileWatcher);
 
-        _fwDictionary.Add(path, fileWatcher);
+        FileWatchers.Add(path, fileWatcher);
         return fileWatcher;
     }
 
@@ -109,11 +108,7 @@ internal class FileWatcher : IDisposable
         fileWatcher.NotifyFilter = NotifyFilter;
         fileWatcher.IncludeSubdirectories = true;
         fileWatcher.EnableRaisingEvents = EnableRaisingEvents;
-
-        foreach (var filter in Filters)
-        {
-            fileWatcher.Filters.Add(filter);
-        }
+        Filters.ToList().ForEach(filter => fileWatcher.Filters.Add(filter));
 
         // currently the sync object is only registered for the root file watcher.
         // this preserves the old behaviour
@@ -178,7 +173,7 @@ internal class FileWatcher : IDisposable
     {
         try
         {
-            if (IsSymbolicLinkDirectory(path) && !_fwDictionary.ContainsKey(path))
+            if (IsSymbolicLinkDirectory(path) && !FileWatchers.ContainsKey(path))
             {
                 RegisterFileWatcher(path);
             }
@@ -197,10 +192,10 @@ internal class FileWatcher : IDisposable
     /// </summary>
     internal void UnregisterFileWatcherForSymbolicLinkDir(object sender, FileSystemEventArgs e)
     {
-        if (_fwDictionary.ContainsKey(e.FullPath))
+        if (FileWatchers.ContainsKey(e.FullPath))
         {
-            _fwDictionary[e.FullPath].Dispose();
-            _fwDictionary.Remove(e.FullPath);
+            FileWatchers[e.FullPath].Dispose();
+            FileWatchers.Remove(e.FullPath);
         }
     }
 
@@ -215,7 +210,7 @@ internal class FileWatcher : IDisposable
     // for testing
     internal List<IFileSystemWatcherWrapper> GetFileWatchers()
     {
-        return _fwDictionary.Values.ToList();
+        return FileWatchers.Values.ToList();
     }
 
 
@@ -224,9 +219,9 @@ internal class FileWatcher : IDisposable
     /// </summary>
     public void Dispose()
     {
-        foreach (var item in _fwDictionary)
+        foreach (var pair in FileWatchers)
         {
-            item.Value.Dispose();
+            pair.Value.Dispose();
         }
     }
 }

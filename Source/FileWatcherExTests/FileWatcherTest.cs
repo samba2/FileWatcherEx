@@ -75,7 +75,7 @@ public class FileWatcherTest
         _uut.TryRegisterFileWatcherForSymbolicLinkDir(subdirPath);
 
         // subdir is ignored
-        Assert.Single(_uut.FwDictionary);
+        Assert.Single(_uut.FileWatchers);
         AssertContainsWatcherFor(dir.FullPath);
 
         var symlinkPath = dir.CreateSymlink(symLink: "sym", target: subdirPath);
@@ -84,7 +84,7 @@ public class FileWatcherTest
         _uut.TryRegisterFileWatcherForSymbolicLinkDir(symlinkPath);
 
         // symlink dir is registered
-        Assert.Equal(2, _uut.FwDictionary.Count);
+        Assert.Equal(2, _uut.FileWatchers.Count);
         AssertContainsWatcherFor(dir.FullPath);
         AssertContainsWatcherFor(symlinkPath);
 
@@ -96,7 +96,7 @@ public class FileWatcherTest
             new FileSystemEventArgs(WatcherChangeTypes.Deleted, dir.FullPath, "sym"));
 
         // sym-link file watcher is removed
-        Assert.Single(_uut.FwDictionary);
+        Assert.Single(_uut.FileWatchers);
         AssertContainsWatcherFor(dir.FullPath);
 
         _uut.Dispose();
@@ -163,15 +163,14 @@ public class FileWatcherTest
             mock => Assert.Equal(mock.Object.Filters, new Collection<string> { "*.foo", "*.bar" }));
 
         // sync. object is only set for root watcher
-        // TODO rename root watcher
         Assert.Collection(_mocks, 
-              mock =>
+              rootWatcherMock =>
               {
-                  mock.VerifySet(w => w.Path = dir.FullPath);
-                  mock.VerifySet(w => w.SynchronizingObject = syncObj);
+                  rootWatcherMock.VerifySet(w => w.Path = dir.FullPath);
+                  rootWatcherMock.VerifySet(w => w.SynchronizingObject = syncObj);
               },
-              mock => mock.VerifySet(w => w.SynchronizingObject = syncObj, Times.Never),
-              mock => mock.VerifySet(w => w.SynchronizingObject = syncObj, Times.Never));
+              otherWatcherMock => otherWatcherMock.VerifySet(w => w.SynchronizingObject = syncObj, Times.Never),
+              otherWatcherMock => otherWatcherMock.VerifySet(w => w.SynchronizingObject = syncObj, Times.Never));
     }
 
     private FileWatcher CreateFileWatcher(string path)
@@ -196,7 +195,7 @@ public class FileWatcherTest
 
     private void AssertContainsWatcherFor(string path)
     {
-        var _ = _uut.FwDictionary[path];
+        var _ = _uut.FileWatchers[path];
         var foundMocks = (
                 from mock in _mocks
                 where HasPropertySetTo(mock, watcher => watcher.Path = path)
