@@ -272,14 +272,13 @@ public class FileSystemWatcherEx : IDisposable, IFileSystemWatcherEx
         _watcher = new FileWatcher(FolderPath, onEvent, onError, FileSystemWatcherFactory, _ => {});
         _fsw = _watcher.Init();
 
-        // all
         foreach (var filter in Filters)
         {
             _fsw.Filters.Add(filter);
         }
 
         _fsw.NotifyFilter = NotifyFilter;
-        // all. if this is not enabled, then also no additional file watchers should be registered
+        // TODO all. if this is not enabled, then also no additional file watchers should be registered
         _fsw.IncludeSubdirectories = IncludeSubdirectories;
         
         _fsw.SynchronizingObject = SynchronizingObject;

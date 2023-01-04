@@ -1,7 +1,9 @@
-﻿using System.ComponentModel;
+﻿using System.Collections.ObjectModel;
+using System.ComponentModel;
 using FileWatcherEx;
 using FileWatcherEx.Helpers;
 using FileWatcherExTests.Helper;
+using Microsoft.VisualBasic;
 using Moq;
 using Xunit;
 using Xunit.Abstractions;
@@ -11,6 +13,7 @@ namespace FileWatcherExTests;
 public class FileWatcherTest
 {
     private readonly ITestOutputHelper _testOutputHelper;
+    // TODO can this be on a test level
     private FileWatcher? _uut;
     private readonly List<Mock<IFileSystemWatcherWrapper>> _mocks;
 
@@ -118,21 +121,30 @@ public class FileWatcherTest
             symLink: "sym1",
             target: subDir); 
 
-        _uut = CreateFileWatcher(dir.FullPath);
-        
+        _uut = new FileWatcher(dir.FullPath,
+            _ => { },
+            _ => { },
+            WatcherFactoryWithMemory,
+            _ => { });
+
         // perform settings. all, except SynchronizingObject are propagated
         // to all registered watchers
         _uut.NotifyFilter = NotifyFilters.LastAccess;
+        _uut.Filters.Add("*.foo");
+        _uut.Filters.Add("*.bar");
         _uut.EnableRaisingEvents = true;
         var syncObj = new Mock<ISynchronizeInvoke>().Object;
         _uut.SynchronizingObject = syncObj;
+
+        // finish object initialization
+        _uut.Init();
         
         // create symlink at runtime
         var symlinkPath2 = dir.CreateSymlink(
             symLink: "sym2",
             target: subDir); 
 
-        // simulate file watcher trigger
+        // simulate that a new symlink dir was added
         _uut.TryRegisterFileWatcherForSymbolicLinkDir(symlinkPath2);
         
         // 1x root watcher, 1x sym link at startup, 1x sym link at runtime 
@@ -146,7 +158,10 @@ public class FileWatcherTest
             _mocks,
             mock =>
                 mock.VerifySet(w => w.EnableRaisingEvents = true));
-        
+        Assert.All(
+            _mocks, 
+            mock => Assert.Equal(mock.Object.Filters, new Collection<string> { "*.foo", "*.bar" }));
+
         // sync. object is only set for root watcher
         // TODO rename root watcher
         Assert.Collection(_mocks, 
@@ -173,6 +188,8 @@ public class FileWatcherTest
     private IFileSystemWatcherWrapper WatcherFactoryWithMemory()
     {
         var mock = new Mock<IFileSystemWatcherWrapper>();
+        // this did the trick to have the 'Filters' property be recorded
+        mock.SetReturnsDefault(new Collection<string>());
         _mocks.Add(mock);
         return mock.Object;
     }

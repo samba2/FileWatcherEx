@@ -2,6 +2,7 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+using System.Collections.ObjectModel;
 using System.ComponentModel;
 
 namespace FileWatcherEx.Helpers;
@@ -18,14 +19,6 @@ internal class FileWatcher : IDisposable
     private Func<IFileSystemWatcherWrapper> _watcherFactory;
     private Action<string> _logger = _ => { };
 
-    // defaults from:
-    // https://learn.microsoft.com/en-us/dotnet/api/system.io.filesystemwatcher.notifyfilter?view=net-7.0#property-value
-    private NotifyFilters _notifyFilters = NotifyFilters.LastWrite
-                                           | NotifyFilters.FileName
-                                           | NotifyFilters.DirectoryName;
-
-    private bool _enableRaisingEvents;
-    private ISynchronizeInvoke _synchronizingObject;
 
     internal Func<string, FileAttributes> GetFileAttributesFunc
     {
@@ -45,32 +38,24 @@ internal class FileWatcher : IDisposable
 
     internal Dictionary<string, IFileSystemWatcherWrapper> FwDictionary => _fwDictionary;
 
-    public NotifyFilters NotifyFilter
-    {
-        set
-        {
-            _notifyFilters = value;
-            _fwDictionary.Values.ToList().ForEach(w => w.NotifyFilter = value);
-        }
-    }
+    // defaults from:
+    // https://learn.microsoft.com/en-us/dotnet/api/system.io.filesystemwatcher.notifyfilter?view=net-7.0#property-value
+    public NotifyFilters NotifyFilter { get; set; } = NotifyFilters.LastWrite
+                                                      | NotifyFilters.FileName
+                                                      | NotifyFilters.DirectoryName;
+    public bool EnableRaisingEvents { get; set; }
+    
+    public Collection<string> Filters { get; } = new();
 
-    public bool EnableRaisingEvents
-    {
-        set
-        {
-            _enableRaisingEvents = value;
-            _fwDictionary.Values.ToList().ForEach(w => w.EnableRaisingEvents = value);
-        }
-    }
-
-    public ISynchronizeInvoke SynchronizingObject
-    {
-        // only set root object
-        set => _fwDictionary[_watchPath].SynchronizingObject = value;
-    }
+    public ISynchronizeInvoke SynchronizingObject { get; set; }
 
     /// <summary>
     /// Create new instance of FileSystemWatcherWrapper
+    ///
+    /// Object creation follows this order:
+    /// 1) create new instance
+    /// 2) set properties (optional)
+    /// 3) call init() (mandatory)
     /// </summary>
     /// <param name="path">Full folder path to watcher</param>
     /// <param name="onEvent">onEvent callback</param>
@@ -98,11 +83,15 @@ internal class FileWatcher : IDisposable
     private IFileSystemWatcherWrapper RegisterFileWatcher(string path)
     {
         var fileWatcher = _watcherFactory();
-        fileWatcher.Path = path;
-        fileWatcher.NotifyFilter = _notifyFilters;
-        fileWatcher.IncludeSubdirectories = true;
-        fileWatcher.EnableRaisingEvents = _enableRaisingEvents;
+        SetFileWatcherProperties(fileWatcher, path);
+        RegisterFileWatcherEventHandlers(fileWatcher);
 
+        _fwDictionary.Add(path, fileWatcher);
+        return fileWatcher;
+    }
+
+    private void RegisterFileWatcherEventHandlers(IFileSystemWatcherWrapper fileWatcher)
+    {
         fileWatcher.Created += (_, e) => ProcessEvent(e, ChangeType.CREATED);
         fileWatcher.Changed += (_, e) => ProcessEvent(e, ChangeType.CHANGED);
         fileWatcher.Deleted += (_, e) => ProcessEvent(e, ChangeType.DELETED);
@@ -112,12 +101,34 @@ internal class FileWatcher : IDisposable
         // extra measures to handle symbolic link directories
         fileWatcher.Created += (_, e) => TryRegisterFileWatcherForSymbolicLinkDir(e.FullPath);
         fileWatcher.Deleted += UnregisterFileWatcherForSymbolicLinkDir;
+    }
+
+    private void SetFileWatcherProperties(IFileSystemWatcherWrapper fileWatcher, string path)
+    {
+        fileWatcher.Path = path;
+        fileWatcher.NotifyFilter = NotifyFilter;
+        fileWatcher.IncludeSubdirectories = true;
+        fileWatcher.EnableRaisingEvents = EnableRaisingEvents;
+
+        foreach (var filter in Filters)
+        {
+            fileWatcher.Filters.Add(filter);
+        }
+
+        // currently the sync object is only registered for the root file watcher.
+        // this preserves the old behaviour
+        if (IsRootPath(path))
+        {
+            fileWatcher.SynchronizingObject = SynchronizingObject;
+        }
 
         //changing this to a higher value can lead into issues when watching UNC drives
         fileWatcher.InternalBufferSize = 32768;
+    }
 
-        _fwDictionary.Add(path, fileWatcher);
-        return fileWatcher;
+    private bool IsRootPath(string path)
+    {
+        return _watchPath == path;
     }
 
 
