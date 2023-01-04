@@ -269,18 +269,18 @@ public class FileSystemWatcherEx : IDisposable, IFileSystemWatcherEx
         // - `watcher` should delegate the set properties to ALL file watchers
         // - if you register a dir later, these 4 properties should be used
         // Start watcher
-        _watcher = new FileWatcher(FolderPath, onEvent, onError, FileSystemWatcherFactory, _ => {});
-        _fsw = _watcher.Init();
-
-        foreach (var filter in Filters)
+        // _watcher = new FileWatcher(FolderPath, onEvent, onError, FileSystemWatcherFactory, _ => {});
+        
+        // TODO do some manual testing
+        _watcher = new FileWatcher(FolderPath, onEvent, onError, FileSystemWatcherFactory, Console.WriteLine)
         {
-            _fsw.Filters.Add(filter);
-        }
-
-        _fsw.NotifyFilter = NotifyFilter;
-        _fsw.IncludeSubdirectories = IncludeSubdirectories;
-        _fsw.SynchronizingObject = SynchronizingObject;
-        _fsw.EnableRaisingEvents = true;
+            NotifyFilter = NotifyFilter,
+            IncludeSubdirectories = IncludeSubdirectories,
+            SynchronizingObject = SynchronizingObject,
+            EnableRaisingEvents = true
+        };
+        Filters.ToList().ForEach(filter => _watcher.Filters.Add(filter));
+        _watcher.Init();
     }
 
     internal void StartForTesting(

@@ -74,22 +74,21 @@ internal class FileWatcher : IDisposable
         _onError = onError;
     }
 
-    public IFileSystemWatcherWrapper Init()
+    public void Init()
     {
-        var watcher = RegisterFileWatcher(_watchPath);
+        RegisterFileWatcher(_watchPath);
         RegisterAdditionalFileWatchersForSymLinkDirs(_watchPath);
-        return watcher;
     }
 
 
-    private IFileSystemWatcherWrapper RegisterFileWatcher(string path)
+    private void RegisterFileWatcher(string path)
     {
+        _logger($"Registering file watcher for {path}");
         var fileWatcher = _watcherFactory();
         SetFileWatcherProperties(fileWatcher, path);
         RegisterFileWatcherEventHandlers(fileWatcher);
 
         FileWatchers.Add(path, fileWatcher);
-        return fileWatcher;
     }
 
     private void RegisterFileWatcherEventHandlers(IFileSystemWatcherWrapper fileWatcher)
@@ -178,6 +177,7 @@ internal class FileWatcher : IDisposable
         {
             if (IsSymbolicLinkDirectory(path) && !FileWatchers.ContainsKey(path))
             {
+                _logger($"Directory {path} is a symbolic link dir. Will register additional file watcher.");
                 RegisterFileWatcher(path);
             }
         }
