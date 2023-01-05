@@ -1,0 +1,56 @@
+﻿name: Execute Tests And Check Coverage
+
+# run workflow on...
+on:
+  # ...push directly to 'main'
+  push:
+    branches: [ 'main' ]
+  # ...when there is pull request activity (created, changed, new commits added...)
+  pull_request:
+  # ...manually via Github Actions web page
+  workflow_dispatch:
+
+jobs:
+  test-and-coverage:
+    
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        dotnet-version: [ '7' ]
+
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup .NET Core SDK ${{ matrix.dotnet-version }}
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: ${{ matrix.dotnet-version }}
+      - name: Install Required Tools
+        run: |
+          dotnet new tool-manifest
+          dotnet tool install dotnet-reportgenerator-globaltool
+      - name: Install Dependencies
+        run: dotnet restore Source/FileWatcherExTests
+      - name: Build
+        run: dotnet build --configuration Release --no-restore Source/FileWatcherExTests
+      - name: Run Tests
+        run: dotnet test --no-restore Source/FileWatcherExTests
+      # check if minimum branch coverage is 75 % 
+      - name: Check Coverage
+        run: > 
+          dotnet test --no-restore --no-build Source/FileWatcherExTests 
+          /p:Threshold=75
+          /p:ThresholdType=branch 
+          /p:CollectCoverage=true 
+          /p:CoverletOutputFormat=opencover 
+      - name: Create Coverage Report
+        run: >
+          dotnet reportgenerator 
+          -reports:Source/FileWatcherExTests/coverage.opencover.xml 
+          -targetdir:Source/FileWatcherExTests/coveragereport 
+          -reporttypes:HtmlInline
+      - name: Upload Coverage Report
+        uses: actions/upload-artifact@v3
+        with:
+          name: coverage-report
+          path: Source/FileWatcherExTests/coveragereport
+          

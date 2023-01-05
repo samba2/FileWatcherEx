@@ -16,7 +16,7 @@ namespace Demo
 
         private void BtnStart_Click(object sender, EventArgs e)
         {
-            _fw = new FileSystemWatcherEx(txtPath.Text.Trim());
+            _fw = new FileSystemWatcherEx(txtPath.Text.Trim(), FW_OnLog);
 
             _fw.OnRenamed += FW_OnRenamed;
             _fw.OnCreated += FW_OnCreated;
@@ -76,8 +76,11 @@ namespace Demo
                 e.FullPath) + "\r\n";
         }
 
-
-
+        private void FW_OnLog(string value)
+        {
+            txtConsole.Text += $@"[log] {value}" + "\r\n";;
+        }
+        
         private void BtnStop_Click(object sender, EventArgs e)
         {
             _fw.Stop();
@@ -105,7 +108,6 @@ namespace Demo
 
         private void Form1_FormClosing(object sender, FormClosingEventArgs e)
         {
-            _fw.Stop();
             _fw.Dispose();
         }
     }
