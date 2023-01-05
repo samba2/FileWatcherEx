@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        dotnet-version: [ '7.0.101' ]
+        dotnet-version: [ '7' ]
 
     steps:
       - uses: actions/checkout@v3
@@ -28,13 +28,13 @@ jobs:
         run: |
           dotnet new tool-manifest
           dotnet tool install dotnet-reportgenerator-globaltool
-      - name: Install dependencies
+      - name: Install Dependencies
         run: dotnet restore Source/FileWatcherExTests
       - name: Build
         run: dotnet build --configuration Release --no-restore Source/FileWatcherExTests
       - name: Run Tests
         run: dotnet test --no-restore Source/FileWatcherExTests
-      # check if minimum coverage is 75 % 
+      # check if minimum branch coverage is 75 % 
       - name: Check Coverage
         run: > 
           dotnet test --no-restore --no-build Source/FileWatcherExTests 
