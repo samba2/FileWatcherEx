@@ -234,10 +234,10 @@ public class FileSystemWatcherEx : IDisposable, IFileSystemWatcherEx
             }
         }, (log) =>
         {
-            Console.WriteLine(string.Format("{0} | {1}", Enum.GetName(typeof(ChangeType), ChangeType.LOG), log));
+            Console.WriteLine($"{Enum.GetName(typeof(ChangeType), ChangeType.LOG)} | {log}");
         });
 
-        _cancelSource = new();
+        _cancelSource = new CancellationTokenSource();
         _thread = new Thread(() => Thread_DoingWork(_cancelSource.Token))
         {
             // this ensures the thread does not block the process from terminating!
@@ -248,22 +248,21 @@ public class FileSystemWatcherEx : IDisposable, IFileSystemWatcherEx
 
 
         // Log each event in our special format to output queue
-        void onEvent(FileChangedEvent e)
+        void OnEvent(FileChangedEvent e)
         {
             _fileEventQueue.Add(e);
         }
 
 
-        // OnError
-        void onError(ErrorEventArgs e)
+        void OnError(ErrorEventArgs e)
         {
             if (e != null)
             {
-                OnError?.Invoke(this, e);
+                this.OnError?.Invoke(this, e);
             }
         }
 
-        _watcher = new FileWatcher(FolderPath, onEvent, onError, FileSystemWatcherFactory, _logger)
+        _watcher = new FileWatcher(FolderPath, OnEvent, OnError, FileSystemWatcherFactory, _logger)
         {
             NotifyFilter = NotifyFilter,
             IncludeSubdirectories = IncludeSubdirectories,
