@@ -1,0 +1,33 @@
+﻿name: Execute Tests
+
+# run workflow on...
+on:
+  # ...push directly to main
+  push:
+    branches:
+      - 'main'
+  # ...when there is pull request activity
+  pull_request:
+  # ...manually
+  workflow_dispatch:
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        dotnet-version: [ '7.0.101' ]
+
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup .NET Core SDK ${{ matrix.dotnet-version }}
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: ${{ matrix.dotnet-version }}
+      - name: Install dependencies
+        run: dotnet restore Source/FileWatcherExTests
+      - name: Build
+        run: dotnet build --configuration Release --no-restore Source/FileWatcherExTests
+      - name: Test
+        run: dotnet test --no-restore Source/FileWatcherExTests
