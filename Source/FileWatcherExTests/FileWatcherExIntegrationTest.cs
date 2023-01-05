@@ -11,19 +11,19 @@ namespace FileWatcherExTests;
 /// </summary>
 public class FileWatcherExIntegrationTest : IDisposable
 {
-    private ConcurrentQueue<FileChangedEvent> _events;
-    private ReplayFileSystemWatcherWrapper _replayer;
-    private FileSystemWatcherEx _fileWatcher;
+    private readonly ConcurrentQueue<FileChangedEvent> _events;
+    private readonly FileSystemWatcherEx _fileWatcher;
+    private readonly ReplayFileSystemWatcherFactory _replayFileSystemWatcherFactory;
 
     public FileWatcherExIntegrationTest()
     {
         // setup before each test run
-        _events = new();
-        _replayer = new();
+        _events = new ConcurrentQueue<FileChangedEvent>();
+        _replayFileSystemWatcherFactory = new ReplayFileSystemWatcherFactory();
         
         const string recordingDir = @"C:\temp\fwtest";
         _fileWatcher = new FileSystemWatcherEx(recordingDir);
-        _fileWatcher.FileSystemWatcherFactory = () => _replayer;
+        _fileWatcher.FileSystemWatcherFactory = () => _replayFileSystemWatcherFactory.Create();
         _fileWatcher.IncludeSubdirectories = true;
 
         _fileWatcher.OnCreated += (_, ev) => _events.Enqueue(ev);
@@ -338,8 +338,23 @@ public class FileWatcherExIntegrationTest : IDisposable
             p => FileAttributes.Normal,
             // only used for FullName
             p => new[] { new DirectoryInfo(p)});
-        _replayer.Replay(csvFile);
+        _replayFileSystemWatcherFactory.RootWatcher.Replay(csvFile);
         _fileWatcher.Stop();
     }
+    
+    private class ReplayFileSystemWatcherFactory
+    {
+        private readonly List<ReplayFileSystemWatcherWrapper> _wrappers = new(); 
 
+        public ReplayFileSystemWatcherWrapper Create()
+        {
+            var watcher = new ReplayFileSystemWatcherWrapper();
+            _wrappers.Add(watcher);
+            return watcher;
+        }
+
+        // At integration test, we're only interested in the root file watcher.
+        // This is the one which is registered first and watches the root directory.
+        public ReplayFileSystemWatcherWrapper RootWatcher => _wrappers[0];
+    }
 }
