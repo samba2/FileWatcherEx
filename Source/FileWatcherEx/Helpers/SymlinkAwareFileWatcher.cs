@@ -66,11 +66,11 @@ internal class SymlinkAwareFileWatcher : IDisposable
     public SymlinkAwareFileWatcher(string path, Action<FileChangedEvent> onEvent, Action<ErrorEventArgs> onError,
         Func<IFileSystemWatcherWrapper> watcherFactory, Action<string> logger)
     {
-        _logger = logger;
-        _watcherFactory = watcherFactory;
         _watchPath = path;
         _eventCallback = onEvent;
         _onError = onError;
+        _watcherFactory = watcherFactory;
+        _logger = logger;
     }
 
     public void Init()
@@ -108,6 +108,12 @@ internal class SymlinkAwareFileWatcher : IDisposable
         fileWatcher.InternalBufferSize = 32768;
     }
 
+        
+    private bool IsRootPath(string path)
+    {
+        return _watchPath == path;
+    }
+
     private void RegisterFileWatcherEventHandlers(IFileSystemWatcherWrapper fileWatcher)
     {
         fileWatcher.Created += (_, e) => ProcessEvent(e, ChangeType.CREATED);
@@ -121,12 +127,6 @@ internal class SymlinkAwareFileWatcher : IDisposable
         fileWatcher.Deleted += UnregisterFileWatcherForSymbolicLinkDir;
     }
     
-    private bool IsRootPath(string path)
-    {
-        return _watchPath == path;
-    }
-
-
     /// <summary>
     /// Recursively find sym link dir and register them.
     /// Background: the native filewatcher does not follow symlinks so they need to be treated separately.
