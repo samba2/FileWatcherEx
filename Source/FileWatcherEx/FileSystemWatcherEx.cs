@@ -17,7 +17,7 @@ public class FileSystemWatcherEx : IDisposable, IFileSystemWatcherEx
     private EventProcessor? _processor;
     private readonly BlockingCollection<FileChangedEvent> _fileEventQueue = new();
 
-    private FileWatcher? _watcher;
+    private SymlinkAwareFileWatcher? _watcher;
     private Func<IFileSystemWatcherWrapper>? _fswFactory;
     private readonly Action<string> _logger;
 
@@ -262,7 +262,7 @@ public class FileSystemWatcherEx : IDisposable, IFileSystemWatcherEx
             }
         }
 
-        _watcher = new FileWatcher(FolderPath, OnEvent, OnError, FileSystemWatcherFactory, _logger)
+        _watcher = new SymlinkAwareFileWatcher(FolderPath, OnEvent, OnError, FileSystemWatcherFactory, _logger)
         {
             NotifyFilter = NotifyFilter,
             IncludeSubdirectories = IncludeSubdirectories,

@@ -7,7 +7,7 @@ using System.ComponentModel;
 
 namespace FileWatcherEx.Helpers;
 
-internal class FileWatcher : IDisposable
+internal class SymlinkAwareFileWatcher : IDisposable
 {
     private readonly string _watchPath;
     private readonly Action<FileChangedEvent>? _eventCallback;
@@ -63,7 +63,7 @@ internal class FileWatcher : IDisposable
     /// <param name="onError">onError callback</param>
     /// <param name="watcherFactory">how to create a FileSystemWatcher</param>
     /// <param name="logger">logging callback</param>
-    public FileWatcher(string path, Action<FileChangedEvent> onEvent, Action<ErrorEventArgs> onError,
+    public SymlinkAwareFileWatcher(string path, Action<FileChangedEvent> onEvent, Action<ErrorEventArgs> onError,
         Func<IFileSystemWatcherWrapper> watcherFactory, Action<string> logger)
     {
         _logger = logger;
@@ -78,8 +78,6 @@ internal class FileWatcher : IDisposable
         RegisterFileWatcher(_watchPath);
         RegisterAdditionalFileWatchersForSymLinkDirs(_watchPath);
     }
-
-    // TODO when no sub dirs are watched, also no sym links are watched
 
     private void RegisterFileWatcher(string path)
     {

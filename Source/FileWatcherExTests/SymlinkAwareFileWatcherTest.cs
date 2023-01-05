@@ -3,21 +3,20 @@ using System.ComponentModel;
 using FileWatcherEx;
 using FileWatcherEx.Helpers;
 using FileWatcherExTests.Helper;
-using Microsoft.VisualBasic;
 using Moq;
 using Xunit;
 using Xunit.Abstractions;
 
 namespace FileWatcherExTests;
 
-public class FileWatcherTest
+public class SymlinkAwareFileWatcherTest
 {
     private readonly ITestOutputHelper _testOutputHelper;
     // TODO can this be on a test level
-    private FileWatcher? _uut;
+    private SymlinkAwareFileWatcher? _uut;
     private readonly List<Mock<IFileSystemWatcherWrapper>> _mocks;
 
-    public FileWatcherTest(ITestOutputHelper testOutputHelper)
+    public SymlinkAwareFileWatcherTest(ITestOutputHelper testOutputHelper)
     {
         _testOutputHelper = testOutputHelper;
         _mocks = new List<Mock<IFileSystemWatcherWrapper>>();
@@ -121,7 +120,7 @@ public class FileWatcherTest
             symLink: "sym1",
             target: subDir); 
 
-        _uut = new FileWatcher(dir.FullPath,
+        _uut = new SymlinkAwareFileWatcher(dir.FullPath,
             _ => { },
             _ => { },
             WatcherFactoryWithMemory,
@@ -191,7 +190,7 @@ public class FileWatcherTest
             symLink: "sym1",
             target: subDir); 
 
-        _uut = new FileWatcher(dir.FullPath,
+        _uut = new SymlinkAwareFileWatcher(dir.FullPath,
             _ => { },
             _ => { },
             WatcherFactoryWithMemory,
@@ -213,9 +212,9 @@ public class FileWatcherTest
     }
 
     
-    private FileWatcher CreateFileWatcher(string path)
+    private SymlinkAwareFileWatcher CreateFileWatcher(string path)
     {
-        var fw = new FileWatcher(path,
+        var fw = new SymlinkAwareFileWatcher(path,
             _ => { },
             _ => { },
             WatcherFactoryWithMemory,
