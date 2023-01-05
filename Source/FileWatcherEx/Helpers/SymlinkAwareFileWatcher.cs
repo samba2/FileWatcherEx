@@ -78,7 +78,7 @@ internal class SymlinkAwareFileWatcher : IDisposable
         RegisterFileWatcher(_watchPath);
         RegisterAdditionalFileWatchersForSymLinkDirs(_watchPath);
     }
-
+    
     private void RegisterFileWatcher(string path)
     {
         _logger($"Registering file watcher for {path}");
@@ -169,6 +169,10 @@ internal class SymlinkAwareFileWatcher : IDisposable
     }
 
 
+    /// <summary>
+    /// Safely register a file watcher for a symbolic link directory. Used at startup as well as callback on file creation.
+    /// </summary>
+    /// <param name="path"></param>
     internal void TryRegisterFileWatcherForSymbolicLinkDir(string path)
     {
         try
@@ -216,7 +220,7 @@ internal class SymlinkAwareFileWatcher : IDisposable
 
 
     /// <summary>
-    /// Dispose the instance
+    /// Stop raising events and Dispose all filewatchers 
     /// </summary>
     public void Dispose()
     {
