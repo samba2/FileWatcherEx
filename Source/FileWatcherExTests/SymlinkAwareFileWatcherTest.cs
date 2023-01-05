@@ -12,8 +12,6 @@ namespace FileWatcherExTests;
 public class SymlinkAwareFileWatcherTest
 {
     private readonly ITestOutputHelper _testOutputHelper;
-    // TODO can this be on a test level
-    private SymlinkAwareFileWatcher? _uut;
     private readonly List<Mock<IFileSystemWatcherWrapper>> _mocks;
 
     public SymlinkAwareFileWatcherTest(ITestOutputHelper testOutputHelper)
@@ -26,7 +24,7 @@ public class SymlinkAwareFileWatcherTest
     public void Root_Watcher_Is_Created()
     {
         using var dir = new TempDir();
-        _uut = CreateFileWatcher(dir.FullPath);
+        CreateFileWatcher(dir.FullPath);
         AssertContainsWatcherFor(dir.FullPath);
     }
 
@@ -55,7 +53,7 @@ public class SymlinkAwareFileWatcherTest
         // symlink {tempdir}/sym1/sym2 to {tempdir}/subdir2
         var symlinkPath2 = dir.CreateSymlink(symLink: new []{"sym1", "sym2"}, target: subdirPath2);
 
-        _uut = CreateFileWatcher(dir.FullPath);
+        CreateFileWatcher(dir.FullPath);
 
         AssertContainsWatcherFor(dir.FullPath);
         AssertContainsWatcherFor(symlinkPath1);
@@ -66,24 +64,24 @@ public class SymlinkAwareFileWatcherTest
     public void FileWatchers_For_SymLink_Dirs_Are_Created_During_Runtime()
     {
         using var dir = new TempDir();
-        _uut = CreateFileWatcher(dir.FullPath);
+        var uut = CreateFileWatcher(dir.FullPath);
 
         var subdirPath = dir.CreateSubDir("subdir");
 
         // simulate file watcher trigger
-        _uut.TryRegisterFileWatcherForSymbolicLinkDir(subdirPath);
+        uut.TryRegisterFileWatcherForSymbolicLinkDir(subdirPath);
 
         // subdir is ignored
-        Assert.Single(_uut.FileWatchers);
+        Assert.Single(uut.FileWatchers);
         AssertContainsWatcherFor(dir.FullPath);
 
         var symlinkPath = dir.CreateSymlink(symLink: "sym", target: subdirPath);
 
         // simulate file watcher trigger
-        _uut.TryRegisterFileWatcherForSymbolicLinkDir(symlinkPath);
+        uut.TryRegisterFileWatcherForSymbolicLinkDir(symlinkPath);
 
         // symlink dir is registered
-        Assert.Equal(2, _uut.FileWatchers.Count);
+        Assert.Equal(2, uut.FileWatchers.Count);
         AssertContainsWatcherFor(dir.FullPath);
         AssertContainsWatcherFor(symlinkPath);
 
@@ -91,21 +89,21 @@ public class SymlinkAwareFileWatcherTest
         Directory.Delete(symlinkPath);
 
         // simulate file watcher trigger
-        _uut.UnregisterFileWatcherForSymbolicLinkDir(null,
+        uut.UnregisterFileWatcherForSymbolicLinkDir(null,
             new FileSystemEventArgs(WatcherChangeTypes.Deleted, dir.FullPath, "sym"));
 
         // sym-link file watcher is removed
-        Assert.Single(_uut.FileWatchers);
+        Assert.Single(uut.FileWatchers);
         AssertContainsWatcherFor(dir.FullPath);
 
-        _uut.Dispose();
+        uut.Dispose();
     }
 
     [Fact]
     public void MakeWatcher_Create_Exceptions_Are_Silently_Ignored()
     {
-        _uut = CreateFileWatcher("/bar");
-        _uut.TryRegisterFileWatcherForSymbolicLinkDir("/not/existing/foo");
+        var uut = CreateFileWatcher("/bar");
+        uut.TryRegisterFileWatcherForSymbolicLinkDir("/not/existing/foo");
     }
 
     [Fact]
@@ -120,7 +118,7 @@ public class SymlinkAwareFileWatcherTest
             symLink: "sym1",
             target: subDir); 
 
-        _uut = new SymlinkAwareFileWatcher(dir.FullPath,
+        var uut = new SymlinkAwareFileWatcher(dir.FullPath,
             _ => { },
             _ => { },
             WatcherFactoryWithMemory,
@@ -128,16 +126,16 @@ public class SymlinkAwareFileWatcherTest
 
         // perform settings. all, except SynchronizingObject are propagated
         // to all registered watchers
-        _uut.NotifyFilter = NotifyFilters.LastAccess;
-        _uut.Filters.Add("*.foo");
-        _uut.Filters.Add("*.bar");
-        _uut.EnableRaisingEvents = true;
-        _uut.IncludeSubdirectories = true;
+        uut.NotifyFilter = NotifyFilters.LastAccess;
+        uut.Filters.Add("*.foo");
+        uut.Filters.Add("*.bar");
+        uut.EnableRaisingEvents = true;
+        uut.IncludeSubdirectories = true;
         var syncObj = new Mock<ISynchronizeInvoke>().Object;
-        _uut.SynchronizingObject = syncObj;
+        uut.SynchronizingObject = syncObj;
 
         // finish object initialization
-        _uut.Init();
+        uut.Init();
         
         // create symlink at runtime
         var symlinkPath2 = dir.CreateSymlink(
@@ -145,7 +143,7 @@ public class SymlinkAwareFileWatcherTest
             target: subDir); 
 
         // simulate that a new symlink dir was added
-        _uut.TryRegisterFileWatcherForSymbolicLinkDir(symlinkPath2);
+        uut.TryRegisterFileWatcherForSymbolicLinkDir(symlinkPath2);
         
         // 1x root watcher, 1x sym link at startup, 1x sym link at runtime 
         Assert.Equal(3, _mocks.Count);
@@ -178,7 +176,7 @@ public class SymlinkAwareFileWatcherTest
     }
 
     
-        [Fact]
+    [Fact]
     public void When_No_SubDirs_Are_Watched_Also_No_Additional_Symlink_Watchers_Are_Registered()
     {
         using var dir = new TempDir();
@@ -190,14 +188,14 @@ public class SymlinkAwareFileWatcherTest
             symLink: "sym1",
             target: subDir); 
 
-        _uut = new SymlinkAwareFileWatcher(dir.FullPath,
+        var uut = new SymlinkAwareFileWatcher(dir.FullPath,
             _ => { },
             _ => { },
             WatcherFactoryWithMemory,
             _ => { });
 
-        _uut.IncludeSubdirectories = false;
-        _uut.Init();
+        uut.IncludeSubdirectories = false;
+        uut.Init();
         
         // create symlink at runtime
         var symlinkPath2 = dir.CreateSymlink(
@@ -205,7 +203,7 @@ public class SymlinkAwareFileWatcherTest
             target: subDir); 
 
         // simulate that a new symlink dir was added
-        _uut.TryRegisterFileWatcherForSymbolicLinkDir(symlinkPath2);
+        uut.TryRegisterFileWatcherForSymbolicLinkDir(symlinkPath2);
         
         // only root watcher was registered
         Assert.Single(_mocks);
@@ -235,7 +233,6 @@ public class SymlinkAwareFileWatcherTest
 
     private void AssertContainsWatcherFor(string path)
     {
-        var _ = _uut?.FileWatchers[path];
         var foundMocks = (
                 from mock in _mocks
                 where HasPropertySetTo(mock, watcher => watcher.Path = path)
