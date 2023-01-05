@@ -1,4 +1,4 @@
-﻿name: Execute Tests
+﻿name: Execute Tests And Check Coverage
 
 # run workflow on...
 on:
@@ -25,9 +25,33 @@ jobs:
         uses: actions/setup-dotnet@v3
         with:
           dotnet-version: ${{ matrix.dotnet-version }}
+      - name: Install Required Tools
+        run: |
+          dotnet new tool-manifest
+          dotnet tool install dotnet-reportgenerator-globaltool
       - name: Install dependencies
         run: dotnet restore Source/FileWatcherExTests
       - name: Build
         run: dotnet build --configuration Release --no-restore Source/FileWatcherExTests
-      - name: Test
+      - name: Run Tests
         run: dotnet test --no-restore Source/FileWatcherExTests
+      # check if minimum coverage is 75 % 
+      - name: Check Coverage
+        run: > 
+          dotnet test --no-restore --no-build Source/FileWatcherExTests 
+          /p:Threshold=75
+          /p:ThresholdType=branch 
+          /p:CollectCoverage=true 
+          /p:CoverletOutputFormat=opencover 
+      - name: Create Coverage Report
+        run: >
+          dotnet reportgenerator 
+          -reports:Source/FileWatcherExTests/coverage.opencover.xml 
+          -targetdir:Source/FileWatcherExTests/coveragereport 
+          -reporttypes:HtmlInline
+      - name: Upload Coverage Report
+        uses: actions/upload-artifact@v3
+        with:
+          name: coverage-report
+          path: Source/FileWatcherExTests/coveragereport
+          
