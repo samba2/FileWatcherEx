@@ -9,7 +9,6 @@ namespace FileWatcherEx.Helpers;
 
 internal class FileWatcher : IDisposable
 {
-    // TODO double check properties -> are they all needed ?
     private readonly string _watchPath;
     private readonly Action<FileChangedEvent>? _eventCallback;
     private readonly Action<ErrorEventArgs>? _onError;
@@ -81,7 +80,6 @@ internal class FileWatcher : IDisposable
     }
 
     // TODO when no sub dirs are watched, also no sym links are watched
-    // TODO build warnings
 
     private void RegisterFileWatcher(string path)
     {
@@ -195,7 +193,7 @@ internal class FileWatcher : IDisposable
     /// <summary>
     /// Cleanup filewatcher if a symbolic link dir is deleted
     /// </summary>
-    internal void UnregisterFileWatcherForSymbolicLinkDir(object sender, FileSystemEventArgs e)
+    internal void UnregisterFileWatcherForSymbolicLinkDir(object? _, FileSystemEventArgs e)
     {
         if (FileWatchers.ContainsKey(e.FullPath))
         {
@@ -224,9 +222,10 @@ internal class FileWatcher : IDisposable
     /// </summary>
     public void Dispose()
     {
-        foreach (var pair in FileWatchers)
+        foreach (var watcher in FileWatchers.Select(pair => pair.Value))
         {
-            pair.Value.Dispose();
+            watcher.EnableRaisingEvents = false;
+            watcher.Dispose();
         }
     }
 }

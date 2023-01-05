@@ -200,7 +200,7 @@ public class FileWatcherTest
 
     private void AssertContainsWatcherFor(string path)
     {
-        var _ = _uut.FileWatchers[path];
+        var _ = _uut?.FileWatchers[path];
         var foundMocks = (
                 from mock in _mocks
                 where HasPropertySetTo(mock, watcher => watcher.Path = path)

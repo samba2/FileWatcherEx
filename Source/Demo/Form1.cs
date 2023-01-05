@@ -108,15 +108,7 @@ namespace Demo
 
         private void Form1_FormClosing(object sender, FormClosingEventArgs e)
         {
-            try
-            {
-                _fw.Stop();
-                _fw.Dispose();
-            }
-            catch
-            {
-                // intentionally empty
-            }
+            _fw.Dispose();
         }
     }
 }

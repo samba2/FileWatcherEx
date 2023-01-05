@@ -18,7 +18,6 @@ public class FileSystemWatcherEx : IDisposable, IFileSystemWatcherEx
     private readonly BlockingCollection<FileChangedEvent> _fileEventQueue = new();
 
     private FileWatcher? _watcher;
-    private IFileSystemWatcherWrapper? _fsw;
     private Func<IFileSystemWatcherWrapper>? _fswFactory;
     private readonly Action<string> _logger;
 
@@ -291,12 +290,6 @@ public class FileSystemWatcherEx : IDisposable, IFileSystemWatcherEx
     /// </summary>
     public void Stop()
     {
-        if (_fsw != null)
-        {
-            _fsw.EnableRaisingEvents = false;
-            _fsw.Dispose();
-        }
-
         _watcher?.Dispose();
 
         // stop the thread
@@ -310,7 +303,6 @@ public class FileSystemWatcherEx : IDisposable, IFileSystemWatcherEx
     /// </summary>
     public void Dispose()
     {
-        _fsw?.Dispose();
         _watcher?.Dispose();
         _cancelSource?.Dispose();
         GC.SuppressFinalize(this);
