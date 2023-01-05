@@ -20,6 +20,7 @@ public class FileSystemWatcherEx : IDisposable, IFileSystemWatcherEx
     private FileWatcher? _watcher;
     private IFileSystemWatcherWrapper? _fsw;
     private Func<IFileSystemWatcherWrapper>? _fswFactory;
+    private readonly Action<string> _logger;
 
     // Define the cancellation token.
     private CancellationTokenSource? _cancelSource;
@@ -134,12 +135,13 @@ public class FileSystemWatcherEx : IDisposable, IFileSystemWatcherEx
     /// Initialize new instance of <see cref="FileSystemWatcherEx"/>
     /// </summary>
     /// <param name="folderPath"></param>
-    public FileSystemWatcherEx(string folderPath = "")
+    /// <param name="logger">Optional Action to log out library internals</param>
+    public FileSystemWatcherEx(string folderPath = "", Action<string>? logger = null)
     {
         FolderPath = folderPath;
+        _logger = logger ?? (_ => {}) ;
     }
-
-
+    
     /// <summary>
     /// Start watching files
     /// </summary>
@@ -262,17 +264,7 @@ public class FileSystemWatcherEx : IDisposable, IFileSystemWatcherEx
             }
         }
 
-
-        // TODO
-        // - FileWatcher should not return underlying filewatcher 
-        // - introduce stronger encapsulation
-        // - `watcher` should delegate the set properties to ALL file watchers
-        // - if you register a dir later, these 4 properties should be used
-        // Start watcher
-        // _watcher = new FileWatcher(FolderPath, onEvent, onError, FileSystemWatcherFactory, _ => {});
-        
-        // TODO do some manual testing
-        _watcher = new FileWatcher(FolderPath, onEvent, onError, FileSystemWatcherFactory, Console.WriteLine)
+        _watcher = new FileWatcher(FolderPath, onEvent, onError, FileSystemWatcherFactory, _logger)
         {
             NotifyFilter = NotifyFilter,
             IncludeSubdirectories = IncludeSubdirectories,
@@ -344,6 +336,5 @@ public class FileSystemWatcherEx : IDisposable, IFileSystemWatcherEx
             }
         }
     }
-
-
 }
+

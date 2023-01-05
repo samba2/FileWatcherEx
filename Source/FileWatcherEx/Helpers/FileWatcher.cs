@@ -80,6 +80,8 @@ internal class FileWatcher : IDisposable
         RegisterAdditionalFileWatchersForSymLinkDirs(_watchPath);
     }
 
+    // TODO when no sub dirs are watched, also no sym links are watched
+    // TODO build warnings
 
     private void RegisterFileWatcher(string path)
     {
@@ -89,19 +91,6 @@ internal class FileWatcher : IDisposable
         RegisterFileWatcherEventHandlers(fileWatcher);
 
         FileWatchers.Add(path, fileWatcher);
-    }
-
-    private void RegisterFileWatcherEventHandlers(IFileSystemWatcherWrapper fileWatcher)
-    {
-        fileWatcher.Created += (_, e) => ProcessEvent(e, ChangeType.CREATED);
-        fileWatcher.Changed += (_, e) => ProcessEvent(e, ChangeType.CHANGED);
-        fileWatcher.Deleted += (_, e) => ProcessEvent(e, ChangeType.DELETED);
-        fileWatcher.Renamed += (_, e) => ProcessRenamedEvent(e);
-        fileWatcher.Error += (_, e) => _onError?.Invoke(e);
-
-        // extra measures to handle symbolic link directories
-        fileWatcher.Created += (_, e) => TryRegisterFileWatcherForSymbolicLinkDir(e.FullPath);
-        fileWatcher.Deleted += UnregisterFileWatcherForSymbolicLinkDir;
     }
 
     private void SetFileWatcherProperties(IFileSystemWatcherWrapper fileWatcher, string path)
@@ -123,6 +112,19 @@ internal class FileWatcher : IDisposable
         fileWatcher.InternalBufferSize = 32768;
     }
 
+    private void RegisterFileWatcherEventHandlers(IFileSystemWatcherWrapper fileWatcher)
+    {
+        fileWatcher.Created += (_, e) => ProcessEvent(e, ChangeType.CREATED);
+        fileWatcher.Changed += (_, e) => ProcessEvent(e, ChangeType.CHANGED);
+        fileWatcher.Deleted += (_, e) => ProcessEvent(e, ChangeType.DELETED);
+        fileWatcher.Renamed += (_, e) => ProcessRenamedEvent(e);
+        fileWatcher.Error += (_, e) => _onError?.Invoke(e);
+
+        // extra measures to handle symbolic link directories
+        fileWatcher.Created += (_, e) => TryRegisterFileWatcherForSymbolicLinkDir(e.FullPath);
+        fileWatcher.Deleted += UnregisterFileWatcherForSymbolicLinkDir;
+    }
+    
     private bool IsRootPath(string path)
     {
         return _watchPath == path;
