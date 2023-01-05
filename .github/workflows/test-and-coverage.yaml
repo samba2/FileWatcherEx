@@ -2,18 +2,17 @@
 
 # run workflow on...
 on:
-  # ...push directly to main
+  # ...push directly to 'main'
   push:
-    branches:
-      - 'main'
-  # ...when there is pull request activity
+    branches: [ 'main' ]
+  # ...when there is pull request activity (created, changed, new commits added...)
   pull_request:
-  # ...manually
+  # ...manually via Github Actions web page
   workflow_dispatch:
 
 jobs:
-  build:
-
+  test-and-coverage:
+    
     runs-on: ubuntu-latest
     strategy:
       matrix:
