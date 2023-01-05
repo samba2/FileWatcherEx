@@ -1,9 +1,10 @@
 using Xunit;
 using FileWatcherEx;
+using FileWatcherEx.Helpers;
 
 namespace FileWatcherExTests;
 
-public class EventProcessorTest
+public class EventNormalizerTest
 {
     [Fact]
     public void No_Input_Gives_No_Output()
@@ -142,7 +143,7 @@ public class EventProcessorTest
         Assert.Null(ev.OldFullPath);
     }
 
-[Fact]
+    [Fact]
     public void Result_Suppressed_If_Delete_After_Create()
     {
         var events = NormalizeEvents(
@@ -162,8 +163,32 @@ public class EventProcessorTest
 
         Assert.Empty(events);
     }
-    
 
+    [Fact]
+    public void Created_Event_After_Deleted_Results_Into_Changed()
+    {
+        var events = NormalizeEvents(
+            new FileChangedEvent
+            {
+                ChangeType = ChangeType.DELETED,
+                FullPath = @"c:\foo",
+                OldFullPath = null
+            },
+            new FileChangedEvent
+            {
+                ChangeType = ChangeType.CREATED,
+                FullPath = @"c:\foo",
+                OldFullPath = null
+            }
+        );
+
+        Assert.Single(events);
+        var ev = events.First();
+        Assert.Equal(ChangeType.CHANGED, ev.ChangeType);
+        Assert.Equal(@"c:\foo", ev.FullPath);
+        Assert.Null(ev.OldFullPath);
+    }
+    
     [Fact]
     public void Changed_Event_After_Created_Is_Ignored()
     {
@@ -214,7 +239,7 @@ public class EventProcessorTest
             }
         };
 
-        var filtered = EventProcessor.FilterDeleted(events);
+        var filtered = EventNormalizer.FilterDeleted(events);
         Assert.Equal(events, filtered);
     }
 
@@ -243,26 +268,26 @@ public class EventProcessorTest
             }
         };
 
-        var filtered = EventProcessor.FilterDeleted(events).ToList();
+        var filtered = EventNormalizer.FilterDeleted(events).ToList();
         Assert.Equal(2, filtered.Count);
         Assert.Equal(ChangeType.DELETED, filtered[0].ChangeType);
         Assert.Equal(@"c:\bar", filtered[0].FullPath);
         Assert.Equal(ChangeType.CREATED, filtered[1].ChangeType);
         Assert.Equal(@"c:\foo", filtered[1].FullPath);
     }
-    
-    [Fact]
-    public void Is_Parent()
-    {
-        Assert.True(EventProcessor.IsParent(@"c:\a\b", @"c:"));
-        Assert.True(EventProcessor.IsParent(@"c:\a\b", @"c:\a"));
 
-        // candidate must not have backslash
-        Assert.False(EventProcessor.IsParent(@"c:\a\b", @"c:\"));
-        Assert.False(EventProcessor.IsParent(@"c:\a\b", @"c:\a\"));
-        
-        Assert.False(EventProcessor.IsParent(@"c:\", @"c:\foo"));
-        Assert.False(EventProcessor.IsParent(@"c:\", @"c:\"));
+    [Theory]
+    [InlineData(@"c:\a\b", @"c:", true)]
+    [InlineData(@"c:\a\b", @"c:\a", true)]
+    [InlineData(@"c:\a\b\", @"c:", true)]
+    [InlineData(@"c:\a\b\", @"c:\a", true)]
+    [InlineData(@"c:\a\b", @"c:\", true)]
+    [InlineData(@"c:\a\b", @"c:\a\", true)]
+    [InlineData(@"c:\", @"c:\foo", false)]
+    [InlineData(@"c:\", @"c:\", false)]
+    public void Is_Parent(string path, string candidatePath, bool expectedResult)
+    {
+        Assert.Equal(expectedResult, EventNormalizer.IsParent(path, candidatePath));
     }
 
     [Fact]
@@ -274,34 +299,34 @@ public class EventProcessorTest
             FullPath = @"c:\foo"
         };
 
-        Assert.True(EventProcessor.IsParent(ev, new List<string>()));
+        Assert.True(EventNormalizer.IsParent(ev, new List<string>()));
     }
-    
+
     [Fact]
     public void Delete_Event_For_Subdirectory_Is_Detected()
     {
         var deletedFiles = new List<string>();
-        
+
         var parentDirEvent = new FileChangedEvent
         {
             ChangeType = ChangeType.DELETED,
             FullPath = @"c:\foo"
         };
-        
-        Assert.True(EventProcessor.IsParent(parentDirEvent, deletedFiles));
 
-        
+        Assert.True(EventNormalizer.IsParent(parentDirEvent, deletedFiles));
+
+
         var subDirEvent = new FileChangedEvent
         {
             ChangeType = ChangeType.DELETED,
             FullPath = @"c:\foo\bar"
         };
-        
-        Assert.False(EventProcessor.IsParent(subDirEvent, deletedFiles));
+
+        Assert.False(EventNormalizer.IsParent(subDirEvent, deletedFiles));
     }
-    
+
     private static List<FileChangedEvent> NormalizeEvents(params FileChangedEvent[] events)
     {
-        return EventProcessor.NormalizeEvents(events).ToList();
+        return new EventNormalizer().Normalize(events).ToList();
     }
 }
