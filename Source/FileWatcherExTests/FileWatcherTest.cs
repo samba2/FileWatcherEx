@@ -178,6 +178,41 @@ public class FileWatcherTest
               otherWatcherMock => otherWatcherMock.VerifySet(w => w.SynchronizingObject = syncObj, Times.Never));
     }
 
+    
+        [Fact]
+    public void When_No_SubDirs_Are_Watched_Also_No_Additional_Symlink_Watchers_Are_Registered()
+    {
+        using var dir = new TempDir();
+
+        var subDir = dir.CreateSubDir("subdir");
+
+        // symlink for detection at startup
+        dir.CreateSymlink(
+            symLink: "sym1",
+            target: subDir); 
+
+        _uut = new FileWatcher(dir.FullPath,
+            _ => { },
+            _ => { },
+            WatcherFactoryWithMemory,
+            _ => { });
+
+        _uut.IncludeSubdirectories = false;
+        _uut.Init();
+        
+        // create symlink at runtime
+        var symlinkPath2 = dir.CreateSymlink(
+            symLink: "sym2",
+            target: subDir); 
+
+        // simulate that a new symlink dir was added
+        _uut.TryRegisterFileWatcherForSymbolicLinkDir(symlinkPath2);
+        
+        // only root watcher was registered
+        Assert.Single(_mocks);
+    }
+
+    
     private FileWatcher CreateFileWatcher(string path)
     {
         var fw = new FileWatcher(path,
@@ -185,6 +220,7 @@ public class FileWatcherTest
             _ => { },
             WatcherFactoryWithMemory,
             _ => { });
+        fw.IncludeSubdirectories = true;
         fw.Init();
         return fw;
     }

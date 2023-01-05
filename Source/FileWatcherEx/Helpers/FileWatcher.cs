@@ -175,7 +175,7 @@ internal class FileWatcher : IDisposable
     {
         try
         {
-            if (IsSymbolicLinkDirectory(path) && !FileWatchers.ContainsKey(path))
+            if (IsSymbolicLinkDirectory(path) && IncludeSubdirectories && !FileWatchers.ContainsKey(path))
             {
                 _logger($"Directory {path} is a symbolic link dir. Will register additional file watcher.");
                 RegisterFileWatcher(path);
