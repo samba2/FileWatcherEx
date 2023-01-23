@@ -48,15 +48,16 @@ internal class SymlinkAwareFileWatcher : IDisposable
     public Collection<string> Filters { get; } = new();
 
     public ISynchronizeInvoke? SynchronizingObject { get; set; }
-    
-    
+
+
     /// <summary>
-    /// Create new instance of FileSystemWatcherWrapper
-    ///
+    /// Create new instance of <see cref="FileSystemWatcherWrapper"/>.
     /// Object creation follows this order:
-    /// 1) create new instance
-    /// 2) set properties (optional)
-    /// 3) call init() (mandatory)
+    /// <list type="table">
+    ///   <item>1) create new instance</item>
+    ///   <item>2) set properties (optional)</item>
+    ///   <item>3) call init() (mandatory)</item>
+    /// </list>
     /// </summary>
     /// <param name="path">Full folder path to watcher</param>
     /// <param name="onEvent">onEvent callback</param>

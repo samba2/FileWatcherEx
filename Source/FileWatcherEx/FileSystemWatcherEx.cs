@@ -86,6 +86,7 @@ public class FileSystemWatcherEx : IDisposable, IFileSystemWatcherEx
 
     #endregion
 
+
     #region Public Events
 
     /// <summary>
@@ -141,6 +142,7 @@ public class FileSystemWatcherEx : IDisposable, IFileSystemWatcherEx
         _logger = logger ?? (_ => {}) ;
     }
     
+
     /// <summary>
     /// Start watching files
     /// </summary>
@@ -273,6 +275,7 @@ public class FileSystemWatcherEx : IDisposable, IFileSystemWatcherEx
         _watcher.Init();
     }
 
+
     internal void StartForTesting(
         Func<string, FileAttributes> getFileAttributesFunc, 
         Func<string, DirectoryInfo[]> getDirectoryInfosFunc)
@@ -306,7 +309,6 @@ public class FileSystemWatcherEx : IDisposable, IFileSystemWatcherEx
         _cancelSource?.Dispose();
         GC.SuppressFinalize(this);
     }
-
 
 
     private void Thread_DoingWork(CancellationToken cancelToken)

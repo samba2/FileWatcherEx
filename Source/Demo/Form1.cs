@@ -26,7 +26,7 @@ namespace Demo
 
             _fw.SynchronizingObject = this;
             _fw.IncludeSubdirectories = true;
-            
+
             _fw.Start();
 
             btnStart.Enabled = false;
@@ -78,9 +78,9 @@ namespace Demo
 
         private void FW_OnLog(string value)
         {
-            txtConsole.Text += $@"[log] {value}" + "\r\n";;
+            txtConsole.Text += $@"[log] {value}" + "\r\n";
         }
-        
+
         private void BtnStop_Click(object sender, EventArgs e)
         {
             _fw.Stop();
